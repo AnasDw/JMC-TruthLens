@@ -4,7 +4,9 @@
     description = "The Backend API for TruthLens Browser Plugin"
     authors = ["Anas Dweik <anas.e.dweik@gmail.com>"]
     readme = "README.md"
-    package-mode = false
+
+    [[tool.poetry.packages]]
+    include = "app"
 
 
     [tool.poetry.dependencies]
