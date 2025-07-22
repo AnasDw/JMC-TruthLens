@@ -1,0 +1,38 @@
+[project]
+name = "TruthLens-backend"
+version = "0.1.0"
+description = "The Backend API for TruthLens Browser Plugin"
+authors = [{ name = "Siddhesh Agarwal", email = "siddhesh.agarwal@gmail.com"}]
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "bs4>=0.0.2",
+    "deep-translator>=1.11.4",
+    "fastapi[standard]>=0.115.7",
+    "groq>=0.15.0",
+    "instructor>=1.7.2",
+    "logfire[fastapi]>=3.4.0",
+    "openai>=1.60.2",
+    "pandas>=2.2.3",
+    "pydantic>=2.10.6",
+    "pymongo>=4.10.1",
+    "python-dotenv>=1.0.1",
+    "ujson>=5.10.0",
+    "waybackpy>=3.0.6",
+]
+
+[tool.poetry.dependencies]
+python = ">=3.10,<4.0"
+deep-translator = ">=1.11.4"
+
+[tool.black]
+line-length = 120
+target-version = ["py310"]
+
+[tool.isort]
+py_version = 310
+line_length = 120
+skip_glob = ["./assets/*"]
+
+[tool.logfire]
+pydantic_plugin_record = "failure"

@@ -1,0 +1,26 @@
+[tool.poetry]
+name = "truthLens-dashboard"
+version = "0.1.0"
+description = "Dashboard to view the TruthLens database"
+authors = ["Siddhesh Agarwal <siddhesh.agarwal@gmail.com>"]
+readme = "README.md"
+packages = [{include = "truthLens_app"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+streamlit = "^1.39.0"
+pymongo = "^4.10.1"
+python-dotenv = "^1.0.0"
+pydantic = "^2.9.2"
+matplotlib = "^3.7.2"
+streamlit-aggrid = "^0.3.4.post3"
+plotly = "^5.15.0"
+
+
+[tool.poetry.group.dev.dependencies]
+black = "^24.3.0"
+isort = "^5.12.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
