@@ -1,33 +1,60 @@
-import os
 from typing import Optional
-
-from dotenv import load_dotenv
-from pydantic_settings import BaseSettings
-
-load_dotenv()
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    env: str = os.getenv("ENV", "dev")
-    debug: bool = env == "dev"
+    env: str = Field(default="dev", env="ENV")
+    debug: bool = False
 
-    mongodb_uri: str = os.getenv("MONGODB_URI", "mongodb://localhost:27017")
+    mongo_uri: str = Field(default="mongodb://localhost:27017", env="MONGO_URI")
 
     title: str = "TruthLens API"
     description: str = "API for TruthLens - a news summarization and fact checking app."
     version: str = "0.1.0"
 
     host: str = "0.0.0.0"
-    port: int = int(os.getenv("PORT", "8000"))
+    port: int = Field(default=8000, env="PORT")
 
     allowed_origins: list[str] = ["*"]
     allowed_methods: list[str] = ["*"]
     allowed_headers: list[str] = ["*"]
 
-    groq_api_key: Optional[str] = os.getenv("GROQ_API_KEY")
+    groq_api_key: Optional[str] = Field(default=None, env="GROQ_API_KEY")
+    openai_api_key: str = Field(..., env="OPENAI_API_KEY")
+    google_api_key: str = Field(..., env="GOOGLE_API_KEY")
+    google_cse_id: str = Field(..., env="GOOGLE_CSE_ID")
 
-    class Config:
-        env_file = ".env"
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="forbid",
+    )
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        object.__setattr__(self, "debug", self.env == "dev")
 
 
-settings = Settings()
+def validate_settings(s: Settings) -> None:
+    missing_keys = []
+
+    if not s.groq_api_key:
+        missing_keys.append("GROQ_API_KEY")
+    if not s.openai_api_key:
+        missing_keys.append("OPENAI_API_KEY")
+    if not s.google_api_key:
+        missing_keys.append("GOOGLE_API_KEY")
+    if not s.google_cse_id:
+        missing_keys.append("GOOGLE_CSE_ID")
+
+    if missing_keys:
+        raise ValueError(f"Missing required environment variables: {', '.join(missing_keys)}")
+
+
+try:
+    settings = Settings()
+    validate_settings(settings)
+except Exception as e:
+    print(f"Error loading settings: {e}")
+    raise SystemExit(1) from e

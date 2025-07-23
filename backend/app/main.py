@@ -9,11 +9,8 @@ from app.api.routes import router as api_router
 from app.config import settings
 from app.dependencies import initialize_clients, cleanup_clients
 
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+logger = logging.getLogger("app.main")
 
 
 @asynccontextmanager
@@ -42,11 +39,13 @@ app.add_middleware(
     allow_headers=settings.allowed_headers,
 )
 
+
 @app.middleware("http")
 async def log_requests(request, call_next):
     logger.info(f"Request: {request.method} {request.url}")
     response = await call_next(request)
     logger.info(f"Response status: {response.status_code}")
     return response
+
 
 app.include_router(api_router)

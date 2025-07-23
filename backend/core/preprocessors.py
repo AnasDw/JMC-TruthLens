@@ -14,9 +14,7 @@ class SummaryModel(BaseModel):
     summary: str = Field(..., description="The concise summary of the article content")
 
     class Config:
-        json_encoders = {
-            str: lambda v: v.strip() if v else ""
-        }
+        json_encoders = {str: lambda v: v.strip() if v else ""}
 
 
 class TextPreprocessor:
@@ -106,8 +104,8 @@ class TextPreprocessor:
 
 
 def to_english(text: str) -> str:
-    return TextPreprocessor.to_english(text)
+    return TextPreprocessor.to_english(text=text)
 
 
 async def summarize(client: AsyncGroq, text: str) -> str:
-    return await TextPreprocessor.summarize(client, text)
+    return await TextPreprocessor.summarize(client=client, text=text)
