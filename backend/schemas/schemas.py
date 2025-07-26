@@ -1,43 +1,67 @@
 from datetime import datetime
 from enum import Enum
-from typing import Literal, Optional
+from typing import Optional
 
-from pydantic import AnyHttpUrl, BaseModel, Field
+from pydantic import AnyHttpUrl, BaseModel, Field, field_validator
 
 
 class TextInputData(BaseModel):
-    """input format for text fact checking endpoint"""
-
     url: Optional[AnyHttpUrl] = Field(None, description="The url of the article")
     content: str = Field("", description="The content of the article")
 
 
-
 class FactCheckLabel(str, Enum):
-    """The fact check label enum"""
-
     CORRECT = "correct"
     INCORRECT = "incorrect"
     MISLEADING = "misleading"
 
 
 class GPTFactCheckModel(BaseModel):
-    """expected result format from OpenAI for fact checking"""
+    label: FactCheckLabel = Field(description="The result of the fact check")
+    explanation: str = Field(description="The explanation of the fact check")
+    sources: Optional[list[str]] = Field(default=[], description="The sources of the fact check as strings")
 
-    label: FactCheckLabel = Field(None, description="The result of the fact check")
-    explanation: str = Field("", description="The explanation of the fact check")
-    sources: list[AnyHttpUrl] = Field(list(), description="The sources of the fact check")
+    @field_validator("sources", mode="before")
+    @classmethod
+    def validate_sources(cls, v):
+        if v is None:
+            return []
+        if isinstance(v, str):
+            return [v]
+        if isinstance(v, list):
+            valid_sources = []
+            for source in v:
+                if isinstance(source, str) and source.strip():
+                    valid_sources.append(source.strip())
+                elif hasattr(source, "__str__"):
+                    source_str = str(source).strip()
+                    if source_str:
+                        valid_sources.append(source_str)
+            return valid_sources
+        return []
+
+    @field_validator("label", mode="before")
+    @classmethod
+    def validate_label(cls, v):
+        if isinstance(v, str):
+            v = v.lower().strip()
+            label_mapping = {
+                "true": "correct",
+                "false": "incorrect",
+                "partially true": "misleading",
+                "partially false": "misleading",
+                "mixed": "misleading",
+                "unproven": "misleading",
+            }
+            return label_mapping.get(v, v)
+        return v
 
 
 class HealthResponse(BaseModel):
-    """The response model for the health check endpoint"""
-
     database_is_working: bool = Field(True, description="Whether the database is working")
 
 
 class FactCheckResponse(BaseModel):
-    """The response model for the fact check endpoint"""
-
     url: AnyHttpUrl | None = Field(None, description="The url of the article")
     label: FactCheckLabel = Field(description="The label of the fact check")
     summary: str = Field(description="The summary of the claim")

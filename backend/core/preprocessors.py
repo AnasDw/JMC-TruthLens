@@ -59,6 +59,12 @@ class TextPreprocessor:
 
         model_name = model or TextPreprocessor.DEFAULT_MODEL
 
+        # Truncate text to avoid token limit issues (roughly 4000 characters = ~1000 tokens)
+        max_chars = 4000
+        if len(text) > max_chars:
+            text = text[:max_chars] + "..."
+            logger.debug(f"Text truncated to {max_chars} characters to avoid token limits")
+
         try:
             instructor_client = instructor.from_groq(client)
 

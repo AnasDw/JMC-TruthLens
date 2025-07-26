@@ -1,0 +1,117 @@
+/* TruthLens Content Script Styles */
+/* This file contains styles that are injected into web pages */
+
+.truthlens-loading {
+  cursor: wait !important;
+}
+
+.truthlens-loading * {
+  cursor: wait !important;
+}
+
+/* Subtle overlay to indicate loading state */
+.truthlens-loading::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(99, 102, 241, 0.02);
+  z-index: 999999;
+  pointer-events: none;
+}
+
+/* Loading progress bar at the top of the page */
+.truthlens-loading::after {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, #6366f1, #8b5cf6, #6366f1);
+  background-size: 200% 100%;
+  animation: truthlens-progress 2s ease-in-out infinite;
+  z-index: 9999999;
+  pointer-events: none;
+}
+
+/* Text highlighting styles */
+.truthlens-highlight {
+  background: linear-gradient(120deg, rgba(99, 102, 241, 0.3) 0%, rgba(139, 92, 246, 0.3) 100%) !important;
+  border-radius: 3px !important;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2) !important;
+  animation: truthlens-highlight-pulse 2s ease-in-out infinite !important;
+  position: relative !important;
+  padding: 1px 2px !important;
+}
+
+.truthlens-highlight::before {
+  content: "";
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, #6366f1, #8b5cf6);
+  border-radius: 5px;
+  z-index: -1;
+  opacity: 0.1;
+}
+
+.truthlens-verification-badge {
+  position: absolute !important;
+  top: -8px !important;
+  right: -8px !important;
+  font-size: 12px !important;
+  background: #6366f1 !important;
+  color: white !important;
+  border-radius: 50% !important;
+  width: 16px !important;
+  height: 16px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  z-index: 1000000 !important;
+  animation: truthlens-badge-spin 2s linear infinite !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
+}
+
+@keyframes truthlens-progress {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+@keyframes truthlens-highlight-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.2);
+    background: linear-gradient(120deg, rgba(99, 102, 241, 0.3) 0%, rgba(139, 92, 246, 0.3) 100%);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.4);
+    background: linear-gradient(120deg, rgba(99, 102, 241, 0.4) 0%, rgba(139, 92, 246, 0.4) 100%);
+  }
+}
+
+@keyframes truthlens-badge-spin {
+  0% {
+    transform: rotate(0deg) scale(1);
+  }
+  25% {
+    transform: rotate(90deg) scale(1.1);
+  }
+  50% {
+    transform: rotate(180deg) scale(1);
+  }
+  75% {
+    transform: rotate(270deg) scale(1.1);
+  }
+  100% {
+    transform: rotate(360deg) scale(1);
+  }
+}

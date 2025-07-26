@@ -1,14 +1,12 @@
-import os
 import asyncio
 from typing import Literal, TypedDict
+import logging
 
 import requests
 import ujson
 from bs4 import BeautifulSoup
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel
-from pymongo import AsyncMongoClient
-from pymongo.typings import _DocumentType
 from groq import AsyncGroq
 import instructor
 
@@ -23,6 +21,7 @@ from schemas.schemas import (
     TextInputData,
 )
 
+logger = logging.getLogger(__name__)
 
 GOOGLE_CSE_URL = "https://www.googleapis.com/customsearch/v1"
 
@@ -78,48 +77,87 @@ async def fact_check(groq_client: AsyncGroq, data: TextInputData) -> GPTFactChec
     claim = data.content
     client = instructor.from_groq(groq_client)
 
-    search_query = await client.chat.completions.create(
-        model="llama3-8b-8192",
-        response_model=SearchQuery,
-        tools=[],
-        tool_choice="none",
-        messages=[
-            {
-                "role": "system",
-                "content": (
-                    "You are a fact-check researcher. Frame an appropriate search query "
-                    "to retrieve information helpful for fact-checking the given claim."
-                ),
-            },
-            {"role": "user", "content": claim},
-        ],
-    )
+    try:
+        search_query = await client.chat.completions.create(
+            model="llama3-8b-8192",
+            response_model=SearchQuery,
+            tools=[],
+            tool_choice="none",
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a fact-check researcher. Frame an appropriate search query "
+                        "to retrieve information helpful for fact-checking the given claim. "
+                        "Return only a simple search query string."
+                    ),
+                },
+                {"role": "user", "content": claim},
+            ],
+            max_retries=2,
+        )
+    except Exception as e:
+        logger.error(f"Error generating search query: {e}")
+        search_query = SearchQuery(query=claim[:100])
 
     search_results = await search_tool(groq_client=groq_client, query=search_query.query)
 
-    final_response = await client.chat.completions.create(
-        model="deepseek-r1-distill-llama-70b",
-        messages=[
-            {
-                "role": "system",
-                "content": (
-                    "You are a fact checker. Based on the following claim and search results, "
-                    "classify the claim as 'correct', 'incorrect', or 'misleading'. "
-                    "Provide a reasoned explanation and cite your sources."
-                ),
-            },
-            {
-                "role": "user",
-                "content": (
-                    f"Original statement: {claim}\n\n"
-                    f"Search results: {ujson.dumps(search_results, escape_forward_slashes=False)}"
-                ),
-            },
-        ],
-        response_model=GPTFactCheckModel,
-    )
+    truncated_results = []
+    for result in search_results:
+        truncated_result = {
+            "title": result["title"][:200] if result["title"] else "",
+            "link": result["link"],
+            "content": (
+                result["content"][:500] + "..."
+                if result["content"] and len(result["content"]) > 500
+                else result["content"] or ""
+            ),
+        }
+        truncated_results.append(truncated_result)
 
-    return final_response
+    search_results_text = ujson.dumps(truncated_results, escape_forward_slashes=False)
+    max_search_results_chars = 3000
+    if len(search_results_text) > max_search_results_chars:
+        search_results_text = search_results_text[:max_search_results_chars] + "...}]"
+        logger.debug(f"Search results truncated to {max_search_results_chars} characters")
+
+    try:
+        final_response = await client.chat.completions.create(
+            model="deepseek-r1-distill-llama-70b",
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a fact checker. Based on the following claim and search results, "
+                        "classify the claim as exactly one of: 'correct', 'incorrect', or 'misleading'. "
+                        "Provide a clear explanation and list any relevant source URLs. "
+                        "Be precise with your classification - use 'correct' for true claims, "
+                        "'incorrect' for false claims, and 'misleading' for partially true or ambiguous claims."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": (
+                        f"Claim to fact-check: {claim}\n\n"
+                        f"Search results for reference:\n{search_results_text}\n\n"
+                        f"Please provide:\n"
+                        f"1. A classification (correct/incorrect/misleading)\n"
+                        f"2. A detailed explanation\n"
+                        f"3. Relevant source URLs if available"
+                    ),
+                },
+            ],
+            response_model=GPTFactCheckModel,
+            max_retries=3,
+        )
+        return final_response
+    except Exception as e:
+        logger.error(f"Error in fact checking with instructor: {e}")
+        return GPTFactCheckModel(
+            label=FactCheckLabel.MISLEADING,
+            explanation=f"Unable to complete fact-check due to technical error. Claim: {claim}",
+            sources=[],
+        )
 
 
 async def fact_check_process(
@@ -134,12 +172,25 @@ async def fact_check_process(
 
     fact_check_result = await fact_check(groq_client, text_data)
 
+    valid_references = []
+    for source in fact_check_result.sources or []:
+        try:
+            if source and isinstance(source, str):
+                if source.startswith(("http://", "https://")):
+                    from pydantic import AnyHttpUrl
+
+                    valid_url = AnyHttpUrl(source)
+                    valid_references.append(valid_url)
+        except Exception as e:
+            logger.warning(f"Invalid URL skipped: {source} - {e}")
+            continue
+
     response = FactCheckResponse(
         url=text_data.url,
         label=fact_check_result.label,
         response=fact_check_result.explanation,
         summary=text_data.content,
-        references=fact_check_result.sources,
+        references=valid_references,
         isSafe=is_safe(text_data.url) if text_data.url else False,
         archive=None,
     )

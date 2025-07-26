@@ -3,7 +3,7 @@
   "name": "TruthLens",
   "description": "TruthLens - Trusted and Useful",
   "version": "1.0.0",
-  "permissions": ["activeTab", "tabs", "contextMenus", "storage"],
+  "permissions": ["activeTab", "tabs", "contextMenus", "storage", "scripting"],
   "action": {
     "default_title": "TruthLens",
     "default_popup": "./index.html"
@@ -24,7 +24,7 @@
   ],
   "web_accessible_resources": [
     {
-      "resources": ["index.html"],
+      "resources": ["index.html", "css/content.css"],
       "matches": ["<all_urls>"]
     }
   ],
