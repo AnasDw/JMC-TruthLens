@@ -1,0 +1,49 @@
+{
+  "manifest_version": 3,
+  "name": "TruthLens",
+  "description": "TruthLens - Trusted and Useful",
+  "version": "1.0.0",
+  "permissions": [
+    "activeTab",
+    "tabs",
+    "contextMenus",
+    "storage",
+    "scripting"
+  ],
+  "action": {
+    "default_title": "TruthLens",
+    "default_popup": "./index.html"
+  },
+  "background": {
+    "service_worker": "./background.js"
+  },
+  "icons": {
+    "16": "/assets/imgs/logo_16.png",
+    "48": "/assets/imgs/logo_48.png",
+    "128": "/assets/imgs/logo_128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "<all_urls>"
+      ],
+      "js": [
+        "./content.js"
+      ]
+    }
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "index.html",
+        "css/content.css"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self'"
+  }
+}
