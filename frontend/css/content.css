@@ -78,6 +78,44 @@
   box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
 }
 
+/* Result badge styles */
+.truthlens-result-badge {
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.truthlens-result-badge:hover {
+  transform: translateX(-50%) scale(1.05) !important;
+}
+
+.truthlens-result-badge .result-icon {
+  font-size: 16px !important;
+  margin-bottom: 4px !important;
+}
+
+.truthlens-result-badge .result-text {
+  font-weight: 600 !important;
+  color: #1f2937 !important;
+  margin-bottom: 4px !important;
+}
+
+.truthlens-result-badge .result-details {
+  margin-top: 8px !important;
+  padding-top: 8px !important;
+  border-top: 1px solid #e5e7eb !important;
+}
+
+.truthlens-result-badge .result-response {
+  color: #4b5563 !important;
+  margin-bottom: 6px !important;
+}
+
+.truthlens-result-badge .result-sources {
+  color: #6b7280 !important;
+  font-size: 10px !important;
+  font-style: italic !important;
+}
+
 @keyframes truthlens-progress {
   0% {
     background-position: 200% 0;
@@ -113,5 +151,27 @@
   }
   100% {
     transform: rotate(360deg) scale(1);
+  }
+}
+
+@keyframes truthlens-result-appear {
+  0% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-10px) scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+}
+
+@keyframes truthlens-result-fade {
+  0% {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) translateY(-10px) scale(0.9);
   }
 }

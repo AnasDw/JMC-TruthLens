@@ -106,6 +106,106 @@ function highlightSelectedText(selectedText) {
     }
 }
 
+function showVerificationResult(result) {
+    try {
+        highlightedElements.forEach(element => {
+            if (element && element.parentNode) {
+                const badge = element.querySelector('.truthlens-verification-badge');
+                if (badge) {
+                    badge.remove();
+                }
+                
+                const isTrue = result.label.toLowerCase().includes('true') || 
+                              result.label.toLowerCase().includes('verified') || 
+                              result.label.toLowerCase().includes('accurate');
+                const isFalse = result.label.toLowerCase().includes('false') || 
+                               result.label.toLowerCase().includes('misleading') || 
+                               result.label.toLowerCase().includes('incorrect');
+
+
+                // Change highlight color based on verification result
+                if (isTrue) {
+                    element.style.background = 'linear-gradient(120deg, rgba(16, 185, 129, 0.3) 0%, rgba(34, 197, 94, 0.3) 100%)';
+                    element.style.boxShadow = '0 0 0 2px rgba(16, 185, 129, 0.4)';
+                } else if (isFalse) {                    
+                    element.style.background = 'linear-gradient(120deg, rgba(239, 68, 68, 0.3) 0%, rgba(220, 38, 38, 0.3) 100%)';
+                    element.style.boxShadow = '0 0 0 2px rgba(239, 68, 68, 0.4)';
+                } else {
+                    element.style.background = 'linear-gradient(120deg, rgba(245, 158, 11, 0.3) 0%, rgba(217, 119, 6, 0.3) 100%)';
+                    element.style.boxShadow = '0 0 0 2px rgba(245, 158, 11, 0.4)';
+                }
+
+                console.log("TruthLens: Highlight updated with result:");
+                
+                
+                // Remove the pulsing animation
+                element.style.animation = 'none';
+                
+                // Create a result tooltip/badge
+                const resultBadge = document.createElement('div');
+                resultBadge.className = 'truthlens-result-badge';
+                resultBadge.innerHTML = `
+                    <div class="result-icon">${isTrue ? '✅' : isFalse ? '❌' : '⚠️'}</div>
+                    <div class="result-text">${result.label}</div>
+                    <div class="result-details">
+                        <div class="result-response">${result.response}</div>
+                        ${result.references ? `<div class="result-sources">Sources: ${result.references}</div>` : ''}
+                    </div>
+                `;
+                
+                resultBadge.style.cssText = `
+                    position: absolute !important;
+                    top: -10px !important;
+                    left: 50% !important;
+                    transform: translateX(-50%) !important;
+                    background: white !important;
+                    border: 2px solid ${isTrue ? '#10b981' : isFalse ? '#ef4444' : '#f59e0b'} !important;
+                    border-radius: 8px !important;
+                    padding: 8px 12px !important;
+                    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+                    z-index: 1000001 !important;
+                    min-width: 200px !important;
+                    max-width: 300px !important;
+                    font-size: 12px !important;
+                    line-height: 1.3 !important;
+                    opacity: 1 !important;
+                    animation: truthlens-result-appear 0.3s ease-out forwards !important;
+                    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
+                `;
+                
+                
+                element.appendChild(resultBadge);
+                
+                // Add click handler to show/hide details
+                let detailsVisible = false;
+                const details = resultBadge.querySelector('.result-details');
+                details.style.display = 'none';
+                
+                resultBadge.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    detailsVisible = !detailsVisible;
+                    details.style.display = detailsVisible ? 'block' : 'none';
+                    resultBadge.style.maxWidth = detailsVisible ? '400px' : '300px';
+                });
+                
+                // Auto-hide after 10 seconds
+                setTimeout(() => {
+                    if (resultBadge && resultBadge.parentNode) {
+                        resultBadge.style.animation = 'truthlens-result-fade 0.3s ease-out forwards';
+                        setTimeout(() => {
+                            if (resultBadge && resultBadge.parentNode) {
+                                resultBadge.remove();
+                            }
+                        }, 300);
+                    }
+                }, 10000);
+            }
+        });
+    } catch (error) {
+        console.warn('TruthLens: Error showing verification result:', error);
+    }
+}
+
 function removeTextHighlighting() {
     highlightedElements.forEach(element => {
         try {
@@ -163,6 +263,63 @@ function removeTextHighlighting() {
         }
     });
 }
+    highlightedElements.forEach(element => {
+        try {
+            const parent = element.parentNode;
+            if (parent) {
+                // Remove the text content and put it back in the parent
+                while (element.firstChild) {
+                    if (element.firstChild.className === 'truthlens-verification-badge') {
+                        // Remove the badge
+                        element.removeChild(element.firstChild);
+                    } else {
+                        // Move text nodes back to parent
+                        parent.insertBefore(element.firstChild, element);
+                    }
+                }
+                // Remove the now-empty highlight span
+                parent.removeChild(element);
+                parent.normalize(); // Merge adjacent text nodes
+            }
+        } catch (e) {
+            console.warn('TruthLens: Error removing highlight:', e);
+        }
+    });
+    
+    // Also remove any highlights that might have been added by class
+    const existingHighlights = document.querySelectorAll('.truthlens-highlight');
+    existingHighlights.forEach(element => {
+        try {
+            const parent = element.parentNode;
+            if (parent) {
+                while (element.firstChild) {
+                    if (element.firstChild.className === 'truthlens-verification-badge') {
+                        element.removeChild(element.firstChild);
+                    } else {
+                        parent.insertBefore(element.firstChild, element);
+                    }
+                }
+                parent.removeChild(element);
+                parent.normalize();
+            }
+        } catch (e) {
+            console.warn('TruthLens: Error removing existing highlight:', e);
+        }
+    });
+    
+    // Remove any orphaned badges
+    const orphanedBadges = document.querySelectorAll('.truthlens-verification-badge');
+    orphanedBadges.forEach(badge => {
+        try {
+            if (badge.parentNode) {
+                badge.parentNode.removeChild(badge);
+            }
+        } catch (e) {
+            console.warn('TruthLens: Error removing orphaned badge:', e);
+        }
+    });
+
+
 
 injectLoadingStyles();
 
@@ -170,17 +327,11 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === "ping") {
         sendResponse({ status: "ready" });
         return true;
-    } else if (request.action === "setHighlightSelectedText") {
-        console.log("TruthLens: Highlighting selected text:", request.selectedText);
-        highlightSelectedText(request.selectedText);
-    } else if (request.action === "setLoadingCursor") {        
+    } else if (request.action === "verificationStarted") {
         setLoadingCursor();
-    } else if (request.action === "removeLoadingCursor") {
-        removeLoadingCursor();
-    } else if (request.action === "removeHighlightSelectedText") {
-        removeTextHighlighting();
+        highlightSelectedText(request.selectedText);
     } else if (request.action === "verificationComplete") {
         removeLoadingCursor();
-        // removeTextHighlighting();
+        showVerificationResult(request.result);
     }
 });

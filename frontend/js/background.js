@@ -10,14 +10,13 @@ async function safelySendMessage(tabId, message, retries = 3) {
     for (let i = 0; i <= retries; i++) {
         try {
             await chrome.tabs.sendMessage(tabId, message);
-            return true; // Success
+            return true;
         } catch (error) {
             console.warn(
                 `TruthLens: Attempt ${i + 1} failed to send message:`,
                 error.message
             );
             if (i < retries) {
-                // Wait progressively longer before retrying
                 await new Promise((resolve) =>
                     setTimeout(resolve, 100 * (i + 1))
                 );
@@ -26,7 +25,7 @@ async function safelySendMessage(tabId, message, retries = 3) {
                     "TruthLens: All attempts failed to send message:",
                     message
                 );
-                return false; // Failed
+                return false;
             }
         }
     }
@@ -45,14 +44,13 @@ async function ensureContentScriptReady(tabId) {
             "TruthLens: Content script not ready, attempting to inject..."
         );
 
-        // Try to inject the content script manually
         try {
             await chrome.scripting.executeScript({
                 target: { tabId: tabId },
                 files: ["./js/content.js"],
             });
 
-            // Wait a bit for the script to initialize
+
             await new Promise((resolve) => setTimeout(resolve, 200));
             return true;
         } catch (injectError) {
@@ -90,26 +88,19 @@ async function onContextClick(info, tab) {
         const selectedText = info.selectionText;
         const pageUrl = tab.url;
 
-        // Ensure content script is ready
         const isReady = await ensureContentScriptReady(tab.id);
 
         if (isReady) {
-            // Send messages to content script with error handling
             await safelySendMessage(tab.id, {
-                action: "setHighlightSelectedText",
+                action: "verificationStarted",
                 selectedText: selectedText,
             });
-
-            await safelySendMessage(tab.id, {
-                action: "setLoadingCursor",
-            });
+            await verifyText(pageUrl, selectedText, tab.id);
         } else {
             console.warn(
                 "TruthLens: Content script not available, proceeding without UI updates"
             );
         }
-
-        await verifyText(pageUrl, selectedText, tab.id);
     }
 }
 
@@ -137,23 +128,14 @@ async function verifyText(url, content, tabId = null) {
         const result = await response.json();
 
         if (tabId) {
-            await safelySendMessage(tabId, { action: "verificationComplete" });
-            await safelySendMessage(tabId, {
-                action: "showPopup",
-                result: result,
-            });
+            await safelySendMessage(tabId, { action: "verificationComplete", result: result  });
         }
     } catch (error) {
         console.error("TruthLens: Verification error:", error);
 
         if (tabId) {
-            await safelySendMessage(tabId, { action: "verificationComplete" });
+            await safelySendMessage(tabId, { action: "verificationComplete", error: error.message, });
         }
-
-        await safelySendMessage(tabId, {
-            action: "showPopup",
-            error: error.message,
-        });
     }
 }
 

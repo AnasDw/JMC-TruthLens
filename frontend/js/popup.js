@@ -5,16 +5,57 @@ function handlePopupMessage(message, _, _) {
     const statusDot = document.getElementById("status-dot");
     const popupContainer = document.getElementById("popup-container");
 
+    if (message.loading) {
+        statusDot.style.background = 'var(--warning-color)';
+        popupContainer.classList.add('popup-loading');
+        showLoadingState(resultDiv);
+        return;
+    }
+
     popupContainer.classList.remove("popup-loading");
+    
     if (message.error) {
         showErrorState(resultDiv, message.error);
         statusDot.style.background = "var(--error-color)";
     } else if (message.result) {
-        // showResults(resultDiv, message.result);
+        showSuccessMessage(resultDiv, message.message || "Verification complete!");
         statusDot.style.background = message.result.isSafe
             ? "var(--accent-color)"
             : "var(--error-color)";
     }
+}
+
+function showLoadingState(container) {
+    console.log("Showing loading state in popup");
+    
+    container.innerHTML = `
+        <div class="loading">
+            <div class="loading-spinner"></div>
+        </div>
+        <div style="text-align: center; margin-top: 16px;">
+            <h3 style="color: var(--text-secondary); font-size: var(--font-size-base); font-weight: 500;">
+                🔍 Analyzing content...
+            </h3>
+            <p style="color: var(--text-light); font-size: var(--font-size-sm); margin-top: 8px;">
+                Please wait while we verify the information
+            </p>
+        </div>
+    `;
+}
+
+function showSuccessMessage(container, message) {
+    console.log("Showing success message in popup:", message);
+    
+    container.innerHTML = `
+        <div class="success-message">
+            <div class="success-icon">✨</div>
+            <h3>Success!</h3>
+            <p>${message}</p>
+            <div class="success-hint">
+                💡 Look for the colored highlight on the webpage for detailed verification results
+            </div>
+        </div>
+    `;
 }
 
 
