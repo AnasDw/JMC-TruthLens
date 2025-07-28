@@ -1,5 +1,4 @@
 "use strict";
-/// <reference types="chrome"/>
 class TruthLensContent {
     constructor() {
         this.highlightedElements = [];
@@ -85,10 +84,18 @@ class TruthLensContent {
     `;
         return badge;
     }
+    removeExistingResultBadges() {
+        document
+            .querySelectorAll(`.${this.RESULT_BADGE_CLASS}`)
+            .forEach((badge) => {
+            badge.remove();
+        });
+    }
     highlightSelectedText(selectedText) {
         if (!selectedText?.trim())
             return;
         this.removeTextHighlighting();
+        this.removeExistingResultBadges();
         const textNodes = this.getTextNodes();
         const searchText = selectedText.trim().toLowerCase();
         for (const textNode of textNodes) {
@@ -199,6 +206,8 @@ class TruthLensContent {
         this.highlightedElements.forEach((element) => {
             const badge = element.querySelector(`.${this.BADGE_CLASS}`);
             badge?.remove();
+            const existingResultBadge = element.querySelector(`.${this.RESULT_BADGE_CLASS}`);
+            existingResultBadge?.remove();
             element.style.background = colors.background;
             element.style.boxShadow = colors.boxShadow;
             element.style.animation = "none";
@@ -241,6 +250,7 @@ class TruthLensContent {
         document.querySelectorAll(`.${this.BADGE_CLASS}`).forEach((badge) => {
             badge.remove();
         });
+        this.removeExistingResultBadges();
         this.highlightedElements = [];
     }
     setupMessageListener() {

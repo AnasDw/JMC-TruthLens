@@ -1,5 +1,3 @@
-/// <reference types="chrome"/>
-
 interface VerificationResult {
   label: string;
   response: string;
@@ -128,10 +126,19 @@ class TruthLensContent {
     return badge;
   }
 
+  private removeExistingResultBadges(): void {
+    document
+      .querySelectorAll(`.${this.RESULT_BADGE_CLASS}`)
+      .forEach((badge) => {
+        badge.remove();
+      });
+  }
+
   private highlightSelectedText(selectedText: string): void {
     if (!selectedText?.trim()) return;
 
     this.removeTextHighlighting();
+    this.removeExistingResultBadges();
 
     const textNodes = this.getTextNodes();
     const searchText = selectedText.trim().toLowerCase();
@@ -275,6 +282,11 @@ class TruthLensContent {
       const badge = element.querySelector(`.${this.BADGE_CLASS}`);
       badge?.remove();
 
+      const existingResultBadge = element.querySelector(
+        `.${this.RESULT_BADGE_CLASS}`
+      );
+      existingResultBadge?.remove();
+
       element.style.background = colors.background;
       element.style.boxShadow = colors.boxShadow;
       element.style.animation = "none";
@@ -323,6 +335,8 @@ class TruthLensContent {
     document.querySelectorAll(`.${this.BADGE_CLASS}`).forEach((badge) => {
       badge.remove();
     });
+
+    this.removeExistingResultBadges();
 
     this.highlightedElements = [];
   }
