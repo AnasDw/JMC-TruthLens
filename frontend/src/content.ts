@@ -93,47 +93,6 @@ class TruthLensContent {
   private createHighlightSpan(): HTMLSpanElement {
     const span = document.createElement("span");
     span.className = this.HIGHLIGHT_CLASS;
-
-    // Use setAttribute to ensure styles are applied
-    span.setAttribute(
-      "style",
-      `
-      background: linear-gradient(120deg, rgba(99, 102, 241, 0.8) 0%, rgba(139, 92, 246, 0.8) 100%) !important;
-      border-radius: 4px !important;
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.4) !important;
-      animation: truthlens-highlight-pulse 2s ease-in-out infinite !important;
-      position: relative !important;
-      padding: 2px 4px !important;
-      color: white !important;
-      font-weight: 500 !important;
-      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
-      display: inline !important;
-      z-index: 999999 !important;
-    `
-        .replace(/\s+/g, " ")
-        .trim()
-    );
-
-    // Also set via style.cssText as backup
-    span.style.cssText = `
-      background: linear-gradient(120deg, rgba(99, 102, 241, 0.8) 0%, rgba(139, 92, 246, 0.8) 100%) !important;
-      border-radius: 4px !important;
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.4) !important;
-      animation: truthlens-highlight-pulse 2s ease-in-out infinite !important;
-      position: relative !important;
-      padding: 2px 4px !important;
-      color: white !important;
-      font-weight: 500 !important;
-      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
-      display: inline !important;
-      z-index: 999999 !important;
-    `;
-
-    // Add an immediate visual indicator for debugging
-    span.style.setProperty("background-color", "#6366f1", "important");
-    span.style.setProperty("color", "white", "important");
-    span.style.setProperty("padding", "2px 4px", "important");
-
     return span;
   }
 
@@ -141,23 +100,6 @@ class TruthLensContent {
     const badge = document.createElement("span");
     badge.className = this.BADGE_CLASS;
     badge.innerHTML = "🔍";
-    badge.style.cssText = `
-      position: absolute !important;
-      top: -8px !important;
-      right: -8px !important;
-      font-size: 12px !important;
-      background: #6366f1 !important;
-      color: white !important;
-      border-radius: 50% !important;
-      width: 16px !important;
-      height: 16px !important;
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      z-index: 1000000 !important;
-      animation: truthlens-badge-spin 2s linear infinite !important;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
-    `;
     return badge;
   }
 
@@ -562,7 +504,18 @@ class TruthLensContent {
   private createResultBadge(result: VerificationResult): HTMLDivElement {
     const colors = this.getResultColors(result.label);
     const resultBadge = document.createElement("div");
-    resultBadge.className = this.RESULT_BADGE_CLASS;
+
+    // Add base class and result-specific class
+    let cssClass = this.RESULT_BADGE_CLASS;
+    if (colors.icon === "✅") {
+      cssClass += " result-true";
+    } else if (colors.icon === "❌") {
+      cssClass += " result-false";
+    } else {
+      cssClass += " result-warning";
+    }
+
+    resultBadge.className = cssClass;
 
     resultBadge.innerHTML = `
       <div class="result-icon">${colors.icon}</div>
@@ -575,33 +528,6 @@ class TruthLensContent {
             : ""
         }
       </div>
-    `;
-
-    const borderColor =
-      colors.icon === "✅"
-        ? "#10b981"
-        : colors.icon === "❌"
-        ? "#ef4444"
-        : "#f59e0b";
-
-    resultBadge.style.cssText = `
-      position: absolute !important;
-      top: -10px !important;
-      left: 50% !important;
-      transform: translateX(-50%) !important;
-      background: white !important;
-      border: 2px solid ${borderColor} !important;
-      border-radius: 8px !important;
-      padding: 8px 12px !important;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
-      z-index: 1000001 !important;
-      min-width: 200px !important;
-      max-width: 300px !important;
-      font-size: 12px !important;
-      line-height: 1.3 !important;
-      opacity: 1 !important;
-      animation: truthlens-result-appear 0.3s ease-out forwards !important;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif !important;
     `;
 
     this.setupResultBadgeInteraction(resultBadge);
