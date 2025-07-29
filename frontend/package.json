@@ -5,7 +5,7 @@
   "scripts": {
     "build": "yarn clean && yarn compile && yarn copy-assets && yarn update-manifest",
     "compile": "tsc",
-    "copy-assets": "cp -r css assets index.html dist/",
+    "copy-assets": "cp -r css assets js index.html dist/",
     "update-manifest": "node -e \"const manifest = require('./manifest.json'); manifest.background.service_worker = './background.js'; manifest.content_scripts[0].js = ['./content.js']; require('fs').writeFileSync('./dist/manifest.json', JSON.stringify(manifest, null, 2));\"",
     "build:watch": "tsc --watch",
     "clean": "rm -rf dist",

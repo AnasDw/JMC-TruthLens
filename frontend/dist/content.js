@@ -12,6 +12,7 @@ class TruthLensContent {
     initialize() {
         this.injectLoadingStyles();
         this.setupMessageListener();
+        this.injectBootstrap();
     }
     injectLoadingStyles() {
         if (this.stylesInjected || document.getElementById("truthlens-styles"))
@@ -22,6 +23,23 @@ class TruthLensContent {
         link.href = chrome.runtime.getURL("css/content.css");
         document.head.appendChild(link);
         this.stylesInjected = true;
+    }
+    injectBootstrap() {
+        if (document.getElementById("bootstrap-css"))
+            return;
+        const bootstrapLink = document.createElement("link");
+        bootstrapLink.id = "bootstrap-css";
+        bootstrapLink.rel = "stylesheet";
+        bootstrapLink.href = chrome.runtime.getURL("css/bootstrap.min.css");
+        document.head.appendChild(bootstrapLink);
+        const iconsLink = document.createElement("link");
+        iconsLink.id = "bootstrap-icons-css";
+        iconsLink.rel = "stylesheet";
+        iconsLink.href = chrome.runtime.getURL("css/bootstrap-icons.min.css");
+        document.head.appendChild(iconsLink);
+        const script = document.createElement("script");
+        script.src = chrome.runtime.getURL("js/bootstrap.bundle.min.js");
+        document.body.appendChild(script);
     }
     setLoadingCursor() {
         document.body.classList.add(this.LOADING_CLASS);
@@ -337,43 +355,111 @@ class TruthLensContent {
     createResultBadge(result) {
         const colors = this.getResultColors(result.label);
         const resultBadge = document.createElement("div");
-        // Add base class and result-specific class
-        let cssClass = this.RESULT_BADGE_CLASS;
-        if (colors.icon === "✅") {
-            cssClass += " result-true";
-        }
-        else if (colors.icon === "❌") {
-            cssClass += " result-false";
-        }
-        else {
-            cssClass += " result-warning";
-        }
-        resultBadge.className = cssClass;
+        const modalId = `truthlensModal-${Date.now()}-${Math.random()
+            .toString(36)
+            .substr(2, 9)}`;
+        resultBadge.className = `${this.RESULT_BADGE_CLASS}`;
         resultBadge.innerHTML = `
-      <div class="result-icon">${colors.icon}</div>
-      <div class="result-text">${result.label}</div>
-      <div class="result-details">
-        <div class="result-response">${result.response}</div>
-        ${result.references
-            ? `<div class="result-sources">Sources: ${result.references}</div>`
+     <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#${modalId}">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-list-check" viewBox="0 0 16 16">
+          <path fill-rule="evenodd" d="M5 11.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5M3.854 2.146a.5.5 0 0 1 0 .708l-1.5 1.5a.5.5 0 0 1-.708 0l-.5-.5a.5.5 0 1 1 .708-.708L2 3.293l1.146-1.147a.5.5 0 0 1 .708 0m0 4a.5.5 0 0 1 0 .708l-1.5 1.5a.5.5 0 0 1-.708 0l-.5-.5a.5.5 0 1 1 .708-.708L2 7.293l1.146-1.147a.5.5 0 0 1 .708 0m0 4a.5.5 0 0 1 0 .708l-1.5 1.5a.5.5 0 0 1-.708 0l-.5-.5a.5.5 0 0 1 .708-.708l.146.147 1.146-1.147a.5.5 0 0 1 .708 0"/>
+        </svg>
+        View Details
+    </button>
+    `;
+        // Create modal and append to body to avoid z-index issues
+        const modal = document.createElement("div");
+        modal.className = "modal fade";
+        modal.id = modalId;
+        modal.setAttribute("tabindex", "-1");
+        modal.setAttribute("aria-labelledby", `${modalId}Label`);
+        modal.setAttribute("aria-hidden", "true");
+        modal.innerHTML = `
+      <div class="modal-dialog modal-dialog-scrollable modal-lg">
+        <div class="modal-content">
+          <div class="modal-header bg-light">
+            <h5 class="modal-title" id="${modalId}Label">
+              TruthLens Verification Result
+            </h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="row">
+              <div class="col-12">
+                <div class="alert ${this.getBootstrapAlertClass(result.label)} mb-3" role="alert">
+                  <h6 class="alert-heading mb-0">
+                    <i class="me-2">${colors.icon}</i>
+                    Verification Status: <strong>${result.label}</strong>
+                  </h6>
+                </div>
+              </div>
+            </div>
+            
+            <div class="row">
+              <div class="col-12">
+                <h6 class="text-muted mb-2">Analysis Result:</h6>
+                <p class="fs-6 lh-base">${result.response}</p>
+              </div>
+            </div>
+
+            ${result.references
+            ? `
+            <div class="row mt-3">
+              <div class="col-12">
+                <h6 class="text-muted mb-2">Sources:</h6>
+                <div class="card border-light">
+                  <div class="card-body py-2">
+                    <small class="text-muted">${result.references}</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+            `
             : ""}
+
+            ${result.archive
+            ? `
+            <div class="row mt-3">
+              <div class="col-12">
+                <h6 class="text-muted mb-2">Archive Link:</h6>
+                <div class="d-grid">
+                  <a href="${result.archive}" target="_blank" class="btn btn-outline-secondary btn-sm">
+                    <i class="me-1">🔗</i>
+                    View Archived Version
+                  </a>
+                </div>
+              </div>
+            </div>
+            `
+            : ""}
+          </div>
+          <div class="modal-footer bg-light">
+            <small class="text-muted me-auto">Powered by TruthLens</small>
+            <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+          </div>
+        </div>
       </div>
     `;
-        this.setupResultBadgeInteraction(resultBadge);
+        document.body.appendChild(modal);
+        // Clean up modal when hidden
+        modal.addEventListener("hidden.bs.modal", () => {
+            modal.remove();
+        });
         return resultBadge;
     }
-    setupResultBadgeInteraction(resultBadge) {
-        let detailsVisible = false;
-        const details = resultBadge.querySelector(".result-details");
-        if (details) {
-            details.style.display = "none";
-            resultBadge.addEventListener("click", (e) => {
-                e.stopPropagation();
-                detailsVisible = !detailsVisible;
-                details.style.display = detailsVisible ? "block" : "none";
-                resultBadge.style.maxWidth = detailsVisible ? "400px" : "300px";
-            });
+    getBootstrapAlertClass(label) {
+        const lowerLabel = label.toLowerCase();
+        if (lowerLabel.includes("true") ||
+            lowerLabel.includes("verified") ||
+            lowerLabel.includes("accurate")) {
+            return "alert-success";
         }
+        if (lowerLabel.includes("false") ||
+            lowerLabel.includes("misleading") ||
+            lowerLabel.includes("incorrect")) {
+            return "alert-danger";
+        }
+        return "alert-warning";
     }
     showVerificationResult(result) {
         const colors = this.getResultColors(result.label);

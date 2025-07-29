@@ -36,7 +36,10 @@
     {
       "resources": [
         "index.html",
-        "css/content.css"
+        "css/content.css",
+        "css/bootstrap.min.css",
+        "css/bootstrap-icons.min.css",
+        "js/bootstrap.bundle.min.js"
       ],
       "matches": [
         "<all_urls>"
