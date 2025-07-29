@@ -39,6 +39,9 @@ class TruthLensContent {
         document.head.appendChild(iconsLink);
         const script = document.createElement("script");
         script.src = chrome.runtime.getURL("js/bootstrap.bundle.min.js");
+        script.onload = () => {
+            console.log("Bootstrap loaded successfully");
+        };
         document.body.appendChild(script);
     }
     setLoadingCursor() {
@@ -360,11 +363,11 @@ class TruthLensContent {
             .substr(2, 9)}`;
         resultBadge.className = `${this.RESULT_BADGE_CLASS}`;
         resultBadge.innerHTML = `
-     <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#${modalId}">
+     <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#${modalId}" style="background: linear-gradient(45deg, #6366f1, #8b5cf6);">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-list-check" viewBox="0 0 16 16">
           <path fill-rule="evenodd" d="M5 11.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5M3.854 2.146a.5.5 0 0 1 0 .708l-1.5 1.5a.5.5 0 0 1-.708 0l-.5-.5a.5.5 0 1 1 .708-.708L2 3.293l1.146-1.147a.5.5 0 0 1 .708 0m0 4a.5.5 0 0 1 0 .708l-1.5 1.5a.5.5 0 0 1-.708 0l-.5-.5a.5.5 0 1 1 .708-.708L2 7.293l1.146-1.147a.5.5 0 0 1 .708 0m0 4a.5.5 0 0 1 0 .708l-1.5 1.5a.5.5 0 0 1-.708 0l-.5-.5a.5.5 0 0 1 .708-.708l.146.147 1.146-1.147a.5.5 0 0 1 .708 0"/>
         </svg>
-        View Details
+        See Verification Details
     </button>
     `;
         // Create modal and append to body to avoid z-index issues
@@ -374,6 +377,8 @@ class TruthLensContent {
         modal.setAttribute("tabindex", "-1");
         modal.setAttribute("aria-labelledby", `${modalId}Label`);
         modal.setAttribute("aria-hidden", "true");
+        modal.setAttribute("data-bs-backdrop", "true");
+        modal.setAttribute("data-bs-keyboard", "true");
         modal.innerHTML = `
       <div class="modal-dialog modal-dialog-scrollable modal-lg">
         <div class="modal-content">
@@ -440,11 +445,10 @@ class TruthLensContent {
         </div>
       </div>
     `;
+        // Append modal to body
         document.body.appendChild(modal);
-        // Clean up modal when hidden
-        modal.addEventListener("hidden.bs.modal", () => {
-            modal.remove();
-        });
+        // Don't remove modal when hidden - just keep it for reuse
+        // The modal will be cleaned up when the page is refreshed or when text highlighting is removed
         return resultBadge;
     }
     getBootstrapAlertClass(label) {
@@ -515,6 +519,10 @@ class TruthLensContent {
             badge.remove();
         });
         this.removeExistingResultBadges();
+        // Clean up any TruthLens modals
+        document.querySelectorAll('[id^="truthlensModal-"]').forEach((modal) => {
+            modal.remove();
+        });
         this.highlightedElements = [];
     }
     setupMessageListener() {
