@@ -50,6 +50,114 @@ class TruthLensContent {
     removeLoadingCursor() {
         document.body.classList.remove(this.LOADING_CLASS);
     }
+    showToast(type, title, message, delay = 5000) {
+        // Create toast container if it doesn't exist
+        let toastContainer = document.getElementById("truthlens-toast-container");
+        if (!toastContainer) {
+            toastContainer = document.createElement("div");
+            toastContainer.id = "truthlens-toast-container";
+            toastContainer.className =
+                "toast-container position-fixed bottom-0 end-0 p-3";
+            toastContainer.style.zIndex = "9999";
+            document.body.appendChild(toastContainer);
+        }
+        // Create unique toast ID
+        const toastId = `truthlens-toast-${Date.now()}`;
+        // Get toast configuration based on type
+        const toastConfig = this.getToastConfig(type);
+        // Create toast element
+        const toastElement = document.createElement("div");
+        toastElement.id = toastId;
+        toastElement.className = `toast align-items-center ${toastConfig.bgClass} border-0`;
+        toastElement.setAttribute("role", "alert");
+        toastElement.setAttribute("aria-live", "assertive");
+        toastElement.setAttribute("aria-atomic", "true");
+        toastElement.innerHTML = `
+      <div class="toast-header ${toastConfig.headerClass}">
+        <strong class="me-auto">${toastConfig.icon} ${title}</strong>
+        <button type="button" class="btn-close ${toastConfig.closeButtonClass}" data-bs-dismiss="toast" aria-label="Close"></button>
+      </div>
+      ${message &&
+            `<div class="toast-body">
+        ${message}
+      </div>`}
+  
+      
+    `;
+        // Add toast to container
+        toastContainer.appendChild(toastElement);
+        // Initialize and show toast using Bootstrap
+        // Check if Bootstrap is available
+        if (typeof window.bootstrap !== "undefined") {
+            // @ts-ignore - Bootstrap is loaded globally
+            const toast = new bootstrap.Toast(toastElement, {
+                autohide: true,
+                delay: delay,
+            });
+            toast.show();
+            // Clean up toast after it's hidden
+            toastElement.addEventListener("hidden.bs.toast", () => {
+                toastElement.remove();
+            });
+        }
+        else {
+            // Fallback: Show toast without Bootstrap JS (just CSS styling)
+            toastElement.classList.add("show");
+            // Auto-hide after specified delay
+            setTimeout(() => {
+                toastElement.classList.remove("show");
+                setTimeout(() => {
+                    toastElement.remove();
+                }, 300); // Wait for fade transition
+            }, delay);
+            // Add manual close functionality
+            const closeBtn = toastElement.querySelector(".btn-close");
+            if (closeBtn) {
+                closeBtn.addEventListener("click", () => {
+                    toastElement.classList.remove("show");
+                    setTimeout(() => {
+                        toastElement.remove();
+                    }, 300);
+                });
+            }
+        }
+    }
+    getToastConfig(type) {
+        switch (type) {
+            case "error":
+                return {
+                    icon: "❌",
+                    bgClass: "text-bg-danger",
+                    headerClass: "bg-danger text-white",
+                    closeButtonClass: "btn-close-white",
+                };
+            case "warning":
+                return {
+                    icon: "⚠️",
+                    bgClass: "text-bg-warning",
+                    headerClass: "bg-warning text-dark",
+                    closeButtonClass: "",
+                };
+            case "success":
+                return {
+                    icon: "✅",
+                    bgClass: "text-bg-success",
+                    headerClass: "bg-success text-white",
+                    closeButtonClass: "btn-close-white",
+                };
+            default:
+                return {
+                    icon: "ℹ️",
+                    bgClass: "text-bg-info",
+                    headerClass: "bg-info text-white",
+                    closeButtonClass: "btn-close-white",
+                };
+        }
+    }
+    showMultipleOccurrencesToast(searchText, occurrences) {
+        const message = `The text "<em>${searchText}</em>" appears <strong>${occurrences} times</strong> on this page. Please select a more specific phrase for verification.`;
+        this.showToast("warning", "Multiple Matches Found", message, 5000);
+    }
     getTextNodes() {
         const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
             acceptNode: (node) => {
@@ -93,6 +201,13 @@ class TruthLensContent {
         this.removeTextHighlighting();
         this.removeExistingResultBadges();
         const searchText = selectedText.trim();
+        const wordCount = searchText
+            .split(/\s+/)
+            .filter((word) => word.length > 0).length;
+        if (wordCount < 3) {
+            this.showToast("warning", "Text Too Short", "Please select at least 3 words for verification.", 4000);
+            return;
+        }
         if (this.highlightTextAcrossElements(searchText)) {
             return;
         }
@@ -104,11 +219,15 @@ class TruthLensContent {
         const normalizedSearchText = searchText.toLowerCase().replace(/\s+/g, " ");
         const index = normalizedPageText.indexOf(normalizedSearchText);
         if (index === -1) {
+            // Text not found, show error toast
+            this.showToast("error", "Text Not Found", `The selected text "${searchText}" was not found on this page.`, 4000);
             return false;
         }
         const individualNodeResult = this.createHighlightFromTextWalker(searchText);
-        if (individualNodeResult) {
-            return true;
+        // If createHighlightFromTextWalker returns false, it either found multiple occurrences
+        // (and showed a toast) or failed for another reason. In either case, don't continue.
+        if (individualNodeResult !== null) {
+            return individualNodeResult;
         }
         return this.createCrossElementHighlight(searchText);
     }
@@ -270,10 +389,31 @@ class TruthLensContent {
         while ((node = walker.nextNode())) {
             textNodes.push(node);
         }
+        // First, count total occurrences to check if text appears multiple times
+        let totalOccurrences = 0;
+        const normalizedSearchText = searchText.toLowerCase();
+        for (const textNode of textNodes) {
+            const textContent = textNode.textContent || "";
+            const normalizedContent = textContent.toLowerCase();
+            let searchIndex = 0;
+            while ((searchIndex = normalizedContent.indexOf(normalizedSearchText, searchIndex)) !== -1) {
+                totalOccurrences++;
+                searchIndex += searchText.length;
+            }
+        }
+        // If text appears multiple times, show toast and stop all highlighting
+        if (totalOccurrences > 1) {
+            this.showMultipleOccurrencesToast(searchText, totalOccurrences);
+            return null; // Return null to indicate we should stop the highlighting process completely
+        }
+        // If text doesn't appear at all, let the caller handle it
+        if (totalOccurrences === 0) {
+            return false;
+        }
+        // If text appears only once, proceed with highlighting
         let badgeCreated = false;
         let totalHighlights = 0;
         let firstHighlightSpan = null;
-        const normalizedSearchText = searchText.toLowerCase();
         for (const textNode of textNodes) {
             const textContent = textNode.textContent || "";
             const normalizedContent = textContent.toLowerCase();
