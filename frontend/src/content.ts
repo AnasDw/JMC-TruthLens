@@ -953,9 +953,17 @@ class TruthLensContent {
             break;
 
           case "verificationComplete":
+            this.removeLoadingCursor();
             if (request.result) {
-              this.removeLoadingCursor();
               this.showVerificationResult(request.result);
+            } else if (request.error) {
+              this.removeTextHighlighting();
+              this.showToast(
+                "error",
+                "Verification Error",
+                request.error,
+                5000
+              );
             }
             break;
         }

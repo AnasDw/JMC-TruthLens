@@ -67,6 +67,16 @@ class TruthLensBackground {
       return false;
     }
 
+    try {
+      const tabExists = await this.checkTabExists(tabId);
+      if (!tabExists) {
+        console.warn("TruthLens: Tab no longer exists:", tabId);
+        return false;
+      }
+    } catch (error) {
+      console.warn("TruthLens: Could not verify tab existence:", tabId);
+    }
+
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {
         await chrome.tabs.sendMessage(tabId, message);
@@ -88,6 +98,15 @@ class TruthLensBackground {
       }
     }
     return false;
+  }
+
+  private checkTabExists(tabId: number): Promise<boolean> {
+    return new Promise((resolve) => {
+      chrome.tabs.query({}, (tabs) => {
+        const tabExists = tabs.some((tab) => tab.id === tabId);
+        resolve(tabExists);
+      });
+    });
   }
 
   private isValidTabId(tabId: number): boolean {
@@ -206,8 +225,8 @@ class TruthLensBackground {
     return { isValid: true };
   }
 
-  private async sendErrorToTab(tabId: number, error: string): Promise<void> {
-    await this.safelySendMessage(tabId, {
+  private async sendErrorToTab(tabId: number, error: string): Promise<boolean> {
+    return await this.safelySendMessage(tabId, {
       action: "verificationComplete",
       error,
     });
@@ -238,8 +257,6 @@ class TruthLensBackground {
     const validation = this.validateContent(content);
 
     if (!validation.isValid) {
-      console.error("TruthLens:", validation.error);
-
       if (tabId) {
         await this.sendErrorToTab(tabId, validation.error!);
       }
@@ -250,10 +267,20 @@ class TruthLensBackground {
       const result = await this.makeVerificationRequest(url, content.trim());
 
       if (tabId) {
-        await this.safelySendMessage(tabId, {
+        const messageSent = await this.safelySendMessage(tabId, {
           action: "verificationComplete",
           result,
         });
+
+        if (!messageSent) {
+          console.warn(
+            "TruthLens: Failed to send to original tab, trying active tab"
+          );
+          await this.sendToActiveTab({
+            action: "verificationComplete",
+            result,
+          });
+        }
       }
 
       chrome.storage.local.set({
@@ -265,14 +292,35 @@ class TruthLensBackground {
       });
     } catch (error) {
       const errorMessage = (error as Error).message;
-      console.error("TruthLens: Verification error:", error);
-
       if (tabId) {
-        await this.sendErrorToTab(tabId, errorMessage);
+        const messageSent = await this.sendErrorToTab(tabId, errorMessage);
+
+        if (!messageSent) {
+          console.warn(
+            "TruthLens: Failed to send error to original tab, trying active tab"
+          );
+          await this.sendToActiveTab({
+            action: "verificationComplete",
+            error: errorMessage,
+          });
+        }
       }
 
       await this.sendErrorToPopup(errorMessage);
     }
+  }
+
+  private async sendToActiveTab(message: TruthLensMessage): Promise<boolean> {
+    return new Promise((resolve) => {
+      chrome.tabs.query({ active: true, currentWindow: true }, async (tabs) => {
+        if (tabs.length > 0 && tabs[0].id) {
+          const success = await this.safelySendMessage(tabs[0].id, message);
+          resolve(success);
+        } else {
+          resolve(false);
+        }
+      });
+    });
   }
 
   private async makeVerificationRequest(

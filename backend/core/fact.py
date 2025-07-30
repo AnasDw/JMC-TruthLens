@@ -1,18 +1,18 @@
 import asyncio
-from typing import Literal, TypedDict
 import logging
+from typing import Literal, TypedDict, Optional, List
 
-import requests
+import httpx
 import ujson
 from bs4 import BeautifulSoup
 from motor.motor_asyncio import AsyncIOMotorClient
-from pydantic import BaseModel
+from pydantic import BaseModel, AnyHttpUrl
 from groq import AsyncGroq
 import instructor
 
 from app.config import settings
 from core.db import fetch_from_db_if_exists
-from core.preprocessors import summarize
+from core.preprocessors import summarize  # existing summarize; may or may not accept target_lang
 from core.postprocessors import archive_url, is_safe
 from schemas.schemas import (
     FactCheckLabel,
@@ -25,6 +25,20 @@ logger = logging.getLogger(__name__)
 
 GOOGLE_CSE_URL = "https://www.googleapis.com/customsearch/v1"
 
+# -----------------------
+# Tunables / constants
+# -----------------------
+HTTP_TIMEOUT_SECONDS = 15
+FETCH_CONCURRENCY = 8
+USER_AGENT = "Mozilla/5.0 (compatible; fact-checker/1.0; +https://example.org/bot)"
+
+TITLE_MAX_CHARS = 300
+CONTENT_SNIPPET_MAX_CHARS = 500
+SERIALIZED_RESULTS_MAX_CHARS = 3000
+MAX_ITEMS_FOR_MODEL = 5  # cap results before serializing to keep token budget tight
+
+DEFAULT_SUMMARY_LANG: Literal["en", "source", "auto"] = "en"
+
 
 class SearchResult(TypedDict):
     title: str
@@ -36,53 +50,152 @@ class SearchQuery(BaseModel):
     query: str
 
 
-async def get_content(groq_client: AsyncGroq, url: str) -> str | None:
+# -------------------------------------------
+# Internal helper: resilient summarization
+# -------------------------------------------
+async def _summarize_text(
+    groq_client: AsyncGroq,
+    text: str,
+    target_lang: Literal["en", "source", "auto"] = DEFAULT_SUMMARY_LANG,
+) -> str:
+    """
+    Calls your existing summarize() while being compatible with older versions that
+    don't support the 'target_lang' kwarg.
+    """
     try:
-        with requests.get(url, timeout=15) as res:
-            res.raise_for_status()
-            soup = BeautifulSoup(res.text, "html.parser")
-            return await summarize(groq_client, soup.get_text())
-    except requests.exceptions.RequestException:
+        # Newer version that accepts target_lang
+        return await summarize(groq_client, text, target_lang=target_lang)  # type: ignore[misc]
+    except TypeError:
+        # Backward compatibility: summarize(client, text)
+        logger.debug("summarize() does not accept target_lang; falling back to default signature.")
+        return await summarize(groq_client, text)
+
+
+# -------------------------------------------
+# Content fetching & scraping
+# -------------------------------------------
+async def get_content(
+    groq_client: AsyncGroq,
+    url: str,
+    client: httpx.AsyncClient,
+    *,
+    summary_lang: Literal["en", "source", "auto"] = DEFAULT_SUMMARY_LANG,
+) -> Optional[str]:
+    """
+    Fetches a URL and returns a summarized text of its content.
+    Returns None if fetch fails.
+    """
+    if not url:
+        return None
+
+    try:
+        resp = await client.get(url, timeout=HTTP_TIMEOUT_SECONDS, headers={"User-Agent": USER_AGENT})
+        resp.raise_for_status()
+    except httpx.HTTPError as e:
+        logger.debug("HTTP fetch failed for %s: %s", url, e)
+        return None
+
+    try:
+        # Use a space separator to avoid concatenating words from different nodes
+        soup = BeautifulSoup(resp.text, "html.parser")
+        text = soup.get_text(" ", strip=True)
+        if not text:
+            return None
+        return await _summarize_text(groq_client, text, target_lang=summary_lang)
+    except Exception as e:
+        logger.debug("Parsing/summarization failed for %s: %s", url, e)
         return None
 
 
-async def get_url_content(groq_client: AsyncGroq, item: dict) -> SearchResult:
-    content = await get_content(groq_client, str(item.get("link", "")))
+async def get_url_content(
+    groq_client: AsyncGroq,
+    item: dict,
+    client: httpx.AsyncClient,
+    *,
+    summary_lang: Literal["en", "source", "auto"] = DEFAULT_SUMMARY_LANG,
+) -> SearchResult:
+    link = str(item.get("link") or "")
+    title = str(item.get("title") or "")[:TITLE_MAX_CHARS]
+    snippet = str(item.get("snippet") or "")
+
+    content = await get_content(groq_client, link, client, summary_lang=summary_lang)
     return {
-        "title": item["title"],
-        "link": item["link"],
-        "content": content or item.get("snippet", ""),
+        "title": title,
+        "link": link,
+        "content": content or snippet,
     }
 
 
-async def search_tool(groq_client: AsyncGroq, query: str, num_results: int = 3) -> list[SearchResult]:
+# -------------------------------------------
+# Google CSE search
+# -------------------------------------------
+async def search_tool(
+    groq_client: AsyncGroq,
+    query: str,
+    num_results: int = 3,
+    *,
+    summary_lang: Literal["en", "source", "auto"] = DEFAULT_SUMMARY_LANG,
+) -> List[SearchResult]:
+    """
+    Runs a Google CSE query, fetches each result, extracts & summarizes page text, and returns results.
+    """
     params = {
         "key": settings.google_api_key,
         "cx": settings.google_cse_id,
         "q": query,
-        "num": num_results,
+        "num": max(1, min(num_results, MAX_ITEMS_FOR_MODEL)),  # be conservative
+        "hl": "en",  # bias snippets in English
     }
 
-    resp = requests.get(GOOGLE_CSE_URL, params=params, timeout=15)
-    resp.raise_for_status()
+    headers = {"User-Agent": USER_AGENT}
 
-    search_data = ujson.loads(resp.text)
-    items = search_data.get("items", [])
+    async with httpx.AsyncClient(headers=headers, timeout=HTTP_TIMEOUT_SECONDS) as client:
+        try:
+            resp = await client.get(GOOGLE_CSE_URL, params=params)
+            resp.raise_for_status()
+            search_data = ujson.loads(resp.text)
+            items = search_data.get("items", []) or []
+        except httpx.HTTPError as e:
+            logger.error("CSE request failed: %s", e)
+            items = []
+        except ValueError as e:
+            logger.error("Failed to parse CSE response: %s", e)
+            items = []
 
-    tasks = [get_url_content(groq_client, item) for item in items]
-    return await asyncio.gather(*tasks)
+        # Filter to items with a link field and limit to requested count
+        items = [it for it in items if it.get("link")]  # basic sanity
+        items = items[: params["num"]]
+
+        sem = asyncio.Semaphore(FETCH_CONCURRENCY)
+
+        async def bound_fetch(it: dict) -> SearchResult:
+            async with sem:
+                return await get_url_content(groq_client, it, client, summary_lang=summary_lang)
+
+        if not items:
+            return []
+
+        return await asyncio.gather(*[bound_fetch(it) for it in items])
 
 
+# -------------------------------------------
+# Fact-check orchestration
+# -------------------------------------------
 async def fact_check(groq_client: AsyncGroq, data: TextInputData) -> GPTFactCheckModel:
+    """
+    Uses the LLM to:
+    1) Craft a focused search query for the claim
+    2) Search + fetch + summarize top hits
+    3) Ask the LLM to classify: correct / incorrect / misleading
+    """
     claim = data.content
     client = instructor.from_groq(groq_client)
 
+    # Step 1: Generate a search query
     try:
         search_query = await client.chat.completions.create(
             model="llama3-8b-8192",
             response_model=SearchQuery,
-            tools=[],
-            tool_choice="none",
             messages=[
                 {
                     "role": "system",
@@ -96,34 +209,47 @@ async def fact_check(groq_client: AsyncGroq, data: TextInputData) -> GPTFactChec
             ],
             max_retries=2,
         )
+        query_text = search_query.query
     except Exception as e:
-        logger.error(f"Error generating search query: {e}")
-        search_query = SearchQuery(query=claim[:100])
+        logger.error("Error generating search query: %s", e)
+        query_text = (claim or "")[:100] or "news"
 
-    search_results = await search_tool(groq_client=groq_client, query=search_query.query)
+    # Step 2: Retrieve search results (summarized in English for coherence)
+    search_results = await search_tool(
+        groq_client=groq_client,
+        query=query_text,
+        num_results=3,
+        summary_lang="en",
+    )
 
-    truncated_results = []
-    for result in search_results:
-        truncated_result = {
-            "title": result["title"][:200] if result["title"] else "",
-            "link": result["link"],
-            "content": (
-                result["content"][:500] + "..."
-                if result["content"] and len(result["content"]) > 500
-                else result["content"] or ""
-            ),
-        }
-        truncated_results.append(truncated_result)
+    # Build a compact payload for the model: trim length *before* serialization
+    truncated_results: List[SearchResult] = []
+    for res in search_results:
+        title = (res.get("title") or "")[:TITLE_MAX_CHARS]
+        link = res.get("link") or ""
+        content = res.get("content") or ""
 
+        if len(content) > CONTENT_SNIPPET_MAX_CHARS:
+            content = content[:CONTENT_SNIPPET_MAX_CHARS] + "..."
+
+        truncated_results.append({"title": title, "link": link, "content": content})
+
+    # Limit by count first, then by serialized size
+    truncated_results = truncated_results[:MAX_ITEMS_FOR_MODEL]
     search_results_text = ujson.dumps(truncated_results, escape_forward_slashes=False)
-    max_search_results_chars = 3000
-    if len(search_results_text) > max_search_results_chars:
-        search_results_text = search_results_text[:max_search_results_chars] + "...}]"
-        logger.debug(f"Search results truncated to {max_search_results_chars} characters")
+    if len(search_results_text) > SERIALIZED_RESULTS_MAX_CHARS:
+        # Drop from the end until under budget
+        for _ in range(len(truncated_results)):
+            if len(search_results_text) <= SERIALIZED_RESULTS_MAX_CHARS:
+                break
+            truncated_results.pop()
+            search_results_text = ujson.dumps(truncated_results, escape_forward_slashes=False)
 
+    # Step 3: Ask the model to classify the claim
     try:
         final_response = await client.chat.completions.create(
             model="deepseek-r1-distill-llama-70b",
+            response_model=GPTFactCheckModel,
             messages=[
                 {
                     "role": "system",
@@ -147,12 +273,11 @@ async def fact_check(groq_client: AsyncGroq, data: TextInputData) -> GPTFactChec
                     ),
                 },
             ],
-            response_model=GPTFactCheckModel,
             max_retries=3,
         )
         return final_response
     except Exception as e:
-        logger.error(f"Error in fact checking with instructor: {e}")
+        logger.error("Error in fact checking with instructor: %s", e)
         return GPTFactCheckModel(
             label=FactCheckLabel.MISLEADING,
             explanation=f"Unable to complete fact-check due to technical error. Claim: {claim}",
@@ -160,30 +285,30 @@ async def fact_check(groq_client: AsyncGroq, data: TextInputData) -> GPTFactChec
         )
 
 
+# -------------------------------------------
+# Public entry point with DB cache
+# -------------------------------------------
 async def fact_check_process(
     groq_client: AsyncGroq,
     text_data: TextInputData,
     mongo_client: AsyncIOMotorClient,
-    dtype: Literal["image", "text"],
 ) -> tuple[FactCheckResponse, bool]:
     cached_result = await fetch_from_db_if_exists(mongo_client, text_data)
     if cached_result:
         return cached_result, True
 
+    # Compute
     fact_check_result = await fact_check(groq_client, text_data)
 
-    valid_references = []
-    for source in fact_check_result.sources or []:
-        try:
-            if source and isinstance(source, str):
-                if source.startswith(("http://", "https://")):
-                    from pydantic import AnyHttpUrl
-
-                    valid_url = AnyHttpUrl(source)
-                    valid_references.append(valid_url)
-        except Exception as e:
-            logger.warning(f"Invalid URL skipped: {source} - {e}")
+    # Validate URLs
+    valid_references: List[AnyHttpUrl] = []
+    for src in fact_check_result.sources or []:
+        if not src or not isinstance(src, str):
             continue
+        try:
+            valid_references.append(AnyHttpUrl(src))  # type: ignore[call-arg]
+        except Exception as e:
+            logger.debug("Invalid URL skipped: %r (%s)", src, e)
 
     response = FactCheckResponse(
         url=text_data.url,
@@ -196,6 +321,9 @@ async def fact_check_process(
     )
 
     if response.label != FactCheckLabel.CORRECT and response.url:
-        response.archive = archive_url(response.url)
+        try:
+            response.archive = archive_url(response.url)
+        except Exception as e:
+            logger.debug("Archiving failed for %s: %s", response.url, e)
 
     return response, False
