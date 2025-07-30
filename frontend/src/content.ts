@@ -314,12 +314,21 @@ class TruthLensContent {
     }
 
     const individualNodeResult = this.createHighlightFromTextWalker(searchText);
-    // If createHighlightFromTextWalker returns false, it either found multiple occurrences
-    // (and showed a toast) or failed for another reason. In either case, don't continue.
-    if (individualNodeResult !== null) {
-      return individualNodeResult;
+
+    // If createHighlightFromTextWalker returns null, it found multiple occurrences and showed a toast
+    // In this case, we should stop the highlighting process completely
+    if (individualNodeResult === null) {
+      return false;
     }
 
+    // If createHighlightFromTextWalker returns true, it successfully highlighted the text
+    // In this case, we're done and don't need cross-element highlighting
+    if (individualNodeResult === true) {
+      return true;
+    }
+
+    // If createHighlightFromTextWalker returns false, the text wasn't found in individual nodes
+    // Try cross-element highlighting as a fallback
     return this.createCrossElementHighlight(searchText);
   }
 
