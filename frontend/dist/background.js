@@ -1,5 +1,6 @@
 "use strict";
 /// <reference types="chrome"/>
+/// <reference path="../types/chrome.d.ts"/>
 class TruthLensBackground {
     constructor() {
         this.BASE_URL = "http://127.0.0.1:8000";
@@ -133,10 +134,18 @@ class TruthLensBackground {
         });
     }
     async sendErrorToPopup(error) {
-        chrome.runtime.sendMessage({
-            action: "showPopup",
-            error,
-        });
+        try {
+            await chrome.storage.local.set({
+                truthlens_popup_data: {
+                    action: "showPopup",
+                    error,
+                    timestamp: Date.now(),
+                },
+            });
+        }
+        catch (storageError) {
+            console.error("TruthLens: Failed to store error for popup:", storageError);
+        }
     }
     async verifyText(url, content, tabId) {
         const validation = this.validateContent(content);
@@ -155,9 +164,12 @@ class TruthLensBackground {
                     result,
                 });
             }
-            chrome.runtime.sendMessage({
-                action: "showPopup",
-                result,
+            chrome.storage.local.set({
+                truthlens_popup_data: {
+                    action: "showPopup",
+                    result,
+                    timestamp: Date.now(),
+                },
             });
         }
         catch (error) {

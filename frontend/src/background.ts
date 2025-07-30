@@ -1,4 +1,5 @@
 /// <reference types="chrome"/>
+/// <reference path="../types/chrome.d.ts"/>
 
 interface VerificationResult {
   label: string;
@@ -213,10 +214,20 @@ class TruthLensBackground {
   }
 
   private async sendErrorToPopup(error: string): Promise<void> {
-    chrome.runtime.sendMessage({
-      action: "showPopup",
-      error,
-    } as TruthLensMessage);
+    try {
+      await chrome.storage.local.set({
+        truthlens_popup_data: {
+          action: "showPopup",
+          error,
+          timestamp: Date.now(),
+        },
+      });
+    } catch (storageError) {
+      console.error(
+        "TruthLens: Failed to store error for popup:",
+        storageError
+      );
+    }
   }
 
   private async verifyText(
@@ -245,10 +256,13 @@ class TruthLensBackground {
         });
       }
 
-      chrome.runtime.sendMessage({
-        action: "showPopup",
-        result,
-      } as TruthLensMessage);
+      chrome.storage.local.set({
+        truthlens_popup_data: {
+          action: "showPopup",
+          result,
+          timestamp: Date.now(),
+        },
+      });
     } catch (error) {
       const errorMessage = (error as Error).message;
       console.error("TruthLens: Verification error:", error);

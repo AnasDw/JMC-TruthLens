@@ -1,5 +1,6 @@
 "use strict";
 /// <reference types="chrome"/>
+/// <reference path="../types/chrome.d.ts"/>
 class TruthLensPopup {
     constructor() {
         this.THEME_COLORS = [
@@ -19,6 +20,7 @@ class TruthLensPopup {
         this.cacheElements();
         this.setupEventListeners();
         this.setInitialStatus();
+        this.checkForStoredData();
     }
     cacheElements() {
         this.resultDiv = document.getElementById("result");
@@ -28,10 +30,37 @@ class TruthLensPopup {
     setupEventListeners() {
         document.addEventListener("DOMContentLoaded", () => this.onDOMContentLoaded());
         chrome.runtime.onMessage.addListener((message, sender, sendResponse) => this.handlePopupMessage(message, sender, sendResponse));
+        // Listen for storage changes to get real-time updates
+        chrome.storage.onChanged.addListener((changes, areaName) => {
+            if (areaName === "local" && changes.truthlens_popup_data) {
+                const data = changes.truthlens_popup_data.newValue;
+                if (data) {
+                    this.handlePopupMessage(data, {}, () => { });
+                }
+            }
+        });
     }
     onDOMContentLoaded() {
         this.setInitialStatus();
         this.setupThemeToggle();
+        this.checkForStoredData();
+    }
+    async checkForStoredData() {
+        try {
+            const result = await chrome.storage.local.get("truthlens_popup_data");
+            if (result.truthlens_popup_data) {
+                const data = result.truthlens_popup_data;
+                // Only process recent data (within 30 seconds)
+                if (Date.now() - data.timestamp < 30000) {
+                    this.handlePopupMessage(data, {}, () => { });
+                    // Clear the data after processing
+                    await chrome.storage.local.remove("truthlens_popup_data");
+                }
+            }
+        }
+        catch (error) {
+            console.error("TruthLens: Failed to check stored data:", error);
+        }
     }
     setInitialStatus() {
         if (this.statusDot) {

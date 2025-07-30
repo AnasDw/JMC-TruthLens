@@ -59,6 +59,34 @@ declare namespace chrome {
 
     function executeScript(injection: ScriptInjection): Promise<any>;
   }
+
+  namespace storage {
+    interface StorageChange {
+      oldValue?: any;
+      newValue?: any;
+    }
+
+    interface StorageArea {
+      set(items: { [key: string]: any }): Promise<void>;
+      get(
+        keys?: string | string[] | { [key: string]: any }
+      ): Promise<{ [key: string]: any }>;
+      remove(keys: string | string[]): Promise<void>;
+      clear(): Promise<void>;
+    }
+
+    const local: StorageArea;
+    const sync: StorageArea;
+
+    const onChanged: {
+      addListener(
+        callback: (
+          changes: { [key: string]: StorageChange },
+          areaName: string
+        ) => void
+      ): void;
+    };
+  }
 }
 
 declare const chrome: typeof chrome;

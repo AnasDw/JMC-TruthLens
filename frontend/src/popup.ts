@@ -1,4 +1,5 @@
 /// <reference types="chrome"/>
+/// <reference path="../types/chrome.d.ts"/>
 
 interface VerificationResult {
   label: string;
@@ -59,6 +60,7 @@ class TruthLensPopup {
     this.cacheElements();
     this.setupEventListeners();
     this.setInitialStatus();
+    this.checkForStoredData();
   }
 
   private cacheElements(): void {
@@ -74,11 +76,49 @@ class TruthLensPopup {
     chrome.runtime.onMessage.addListener((message, sender, sendResponse) =>
       this.handlePopupMessage(message, sender, sendResponse)
     );
+
+    // Listen for storage changes to get real-time updates
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+      if (areaName === "local" && changes.truthlens_popup_data) {
+        const data = changes.truthlens_popup_data.newValue;
+        if (data) {
+          this.handlePopupMessage(
+            data,
+            {} as chrome.runtime.MessageSender,
+            () => {}
+          );
+        }
+      }
+    });
   }
 
   private onDOMContentLoaded(): void {
     this.setInitialStatus();
     this.setupThemeToggle();
+    this.checkForStoredData();
+  }
+
+  private async checkForStoredData(): Promise<void> {
+    try {
+      const result = await chrome.storage.local.get("truthlens_popup_data");
+      if (result.truthlens_popup_data) {
+        const data = result.truthlens_popup_data;
+
+        // Only process recent data (within 30 seconds)
+        if (Date.now() - data.timestamp < 30000) {
+          this.handlePopupMessage(
+            data,
+            {} as chrome.runtime.MessageSender,
+            () => {}
+          );
+
+          // Clear the data after processing
+          await chrome.storage.local.remove("truthlens_popup_data");
+        }
+      }
+    } catch (error) {
+      console.error("TruthLens: Failed to check stored data:", error);
+    }
   }
 
   private setInitialStatus(): void {
