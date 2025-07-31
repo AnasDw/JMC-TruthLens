@@ -830,6 +830,13 @@ class TruthLensContent {
     // Append modal to body
     document.body.appendChild(modal);
 
+    try {
+      const bootstrapModal = new (window as any).bootstrap.Modal(modal);
+      bootstrapModal.show();
+    } catch (err) {
+      console.error("Could not show modal programmatically:", err);
+    }
+
     // Don't remove modal when hidden - just keep it for reuse
     // The modal will be cleaned up when the page is refreshed or when text highlighting is removed
 
