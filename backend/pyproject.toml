@@ -10,7 +10,7 @@
 
 
     [tool.poetry.dependencies]
-    python = ">=3.10,<4.0"
+    python = ">=3.12,<4.0"
     bs4 = ">=0.0.2"
     deep-translator = ">=1.11.4"
     fastapi = {extras = ["standard"], version = ">=0.115.7"}
@@ -34,10 +34,10 @@ black = "^25.1.0"
 
     [tool.black]
     line-length = 120
-    target-version = ["py310"]
+    target-version = ["py312"]
 
     [tool.isort]
-    py_version = 310
+    py_version = 312
     line_length = 120
     skip_glob = ["./assets/*"]
 
