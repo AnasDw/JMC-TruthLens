@@ -1,8 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import { Layout, Space, Typography, Button, Tooltip } from "antd";
 import { ShareAltOutlined, HistoryOutlined } from "@ant-design/icons";
+import { VerificationHistory } from "../../components/VerificationHistory";
 
 import type { ChatHeaderProps } from "@/types";
 import { useRouter } from "next/router";
@@ -13,9 +14,21 @@ const { Title } = Typography;
 const ChatHeader: React.FC<ChatHeaderProps> = ({
   title = "TruthLens AI",
   onShareConversation,
-  onViewHistory,
 }) => {
   const router = useRouter();
+  const [historyOpen, setHistoryOpen] = useState(false);
+
+  const handleHistoryClick = () => {
+    setHistoryOpen(true);
+  };
+
+  const handleTaskSelect = (taskId: string) => {
+    router.push({
+      pathname: "/",
+      query: { task_id: taskId },
+    });
+  };
+
   return (
     <Header
       style={{
@@ -56,10 +69,16 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
           <Button
             icon={<HistoryOutlined />}
             type="text"
-            onClick={onViewHistory}
+            onClick={handleHistoryClick}
           />
         </Tooltip>
       </Space>
+
+      <VerificationHistory
+        open={historyOpen}
+        onClose={() => setHistoryOpen(false)}
+        onSelectTask={handleTaskSelect}
+      />
     </Header>
   );
 };

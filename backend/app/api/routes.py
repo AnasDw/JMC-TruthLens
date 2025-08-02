@@ -1,8 +1,8 @@
 from datetime import datetime
 from uuid import uuid4
+from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, Depends
-from pydantic import AnyHttpUrl
 
 from app.dependencies import get_groq_client, get_openai_client, get_mongo_client
 from core import add_to_db, db_is_working
@@ -87,3 +87,34 @@ async def get_task_status_endpoint(
             created_at=datetime.now(),
             updated_at=datetime.now(),
         )
+
+
+@router.get("/tasks/", response_model=list[TaskStatusResponse])
+async def get_all_tasks(
+    limit: int = 50,
+    skip: int = 0,
+    status: Optional[TaskStatus] = None,
+    mongo_client=Depends(get_mongo_client),
+) -> list[TaskStatusResponse]:
+    try:
+        from core.db import get_all_tasks
+
+        limit = min(max(1, limit), 100)
+        skip = max(0, skip)
+
+        tasks = await get_all_tasks(mongo_client, limit=limit, skip=skip, status_filter=status)
+
+        return [
+            TaskStatusResponse(
+                task_id=task.task_id,
+                status=task.status,
+                message=task.message,
+                result=task.result,
+                created_at=task.created_at,
+                updated_at=task.updated_at,
+            )
+            for task in tasks
+        ]
+
+    except Exception as e:
+        return []

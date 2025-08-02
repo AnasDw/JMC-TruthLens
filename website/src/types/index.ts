@@ -32,8 +32,6 @@ export interface ChatSidebarProps {
 export interface ChatHeaderProps {
   title?: string;
   onShareConversation?: () => void;
-  onViewHistory?: () => void;
-  onUserMenuClick?: (key: string) => void;
 }
 
 export interface WelcomeScreenProps {

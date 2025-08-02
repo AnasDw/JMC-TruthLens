@@ -90,3 +90,31 @@ async def get_task_status(client: AsyncIOMotorClient, task_id: UUID) -> Optional
         return None
     except (PyMongoError, ValueError):
         return None
+
+
+async def get_all_tasks(
+    client: AsyncIOMotorClient, limit: int = 50, skip: int = 0, status_filter: Optional[TaskStatus] = None
+) -> list[TaskData]:
+    try:
+        collection = client[DB_NAME][TASKS_COLLECTION]
+
+        query = {}
+        if status_filter:
+            query["status"] = status_filter.value
+
+        cursor = collection.find(query).sort("created_at", -1).skip(skip).limit(limit)
+
+        tasks = []
+        async for task_doc in cursor:
+            try:
+                task_dict = dict(task_doc)
+                task_dict["task_id"] = UUID(task_dict["task_id"])
+                task_data = TaskData.model_validate(task_dict)
+                tasks.append(task_data)
+            except (ValueError, Exception) as e:
+                continue
+
+        return tasks
+
+    except PyMongoError:
+        return []

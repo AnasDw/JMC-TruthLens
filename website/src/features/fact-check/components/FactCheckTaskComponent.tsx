@@ -366,7 +366,7 @@ export const FactCheckTaskComponent: React.FC<FactCheckTaskProps> = ({
         clearInterval(intervalId);
       }
     };
-  }, [fetchTaskStatus]);
+  }, [fetchTaskStatus, factCheckTaskId]);
 
   const currentStep = taskStatus ? getStepFromStatus(taskStatus.status) : 0;
 
