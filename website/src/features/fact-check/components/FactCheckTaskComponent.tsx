@@ -109,6 +109,8 @@ const FactCheckResults: React.FC<{
                   background: "#f8fafc",
                   border: "1px solid #e2e8f0",
                   borderRadius: "12px",
+                  maxHeight: 200,
+                  overflowY: "auto",
                 }}
               >
                 <Paragraph
