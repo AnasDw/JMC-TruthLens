@@ -26,6 +26,10 @@ export default function Home() {
   } = useFactCheck();
 
   useEffect(() => {
+    if (!task_id) {
+      resetForm();
+    }
+
     if (task_id && !factCheckTaskId) {
       setFactCheckTaskId(task_id as string);
     }

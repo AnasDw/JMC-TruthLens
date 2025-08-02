@@ -1,25 +1,11 @@
 "use client";
 
 import React from "react";
-import {
-  Layout,
-  Space,
-  Typography,
-  Avatar,
-  Button,
-  Dropdown,
-  Tooltip,
-} from "antd";
-import {
-  RobotOutlined,
-  ShareAltOutlined,
-  HistoryOutlined,
-  UserOutlined,
-  SettingOutlined,
-  EyeOutlined,
-} from "@ant-design/icons";
-import type { MenuProps } from "antd";
+import { Layout, Space, Typography, Button, Tooltip } from "antd";
+import { ShareAltOutlined, HistoryOutlined } from "@ant-design/icons";
+
 import type { ChatHeaderProps } from "@/types";
+import { useRouter } from "next/router";
 
 const { Header } = Layout;
 const { Title } = Typography;
@@ -28,32 +14,8 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
   title = "TruthLens AI",
   onShareConversation,
   onViewHistory,
-  onUserMenuClick,
 }) => {
-  const userMenuItems: MenuProps["items"] = [
-    {
-      key: "1",
-      icon: <UserOutlined />,
-      label: "Profile",
-    },
-    {
-      key: "2",
-      icon: <SettingOutlined />,
-      label: "Settings",
-    },
-    {
-      type: "divider",
-    },
-    {
-      key: "3",
-      label: "Sign out",
-    },
-  ];
-
-  const handleMenuClick: MenuProps["onClick"] = ({ key }) => {
-    onUserMenuClick?.(key);
-  };
-
+  const router = useRouter();
   return (
     <Header
       style={{
@@ -65,7 +27,7 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
         justifyContent: "space-between",
       }}
     >
-      <Space>
+      <Space onClick={() => router.push("/")} style={{ cursor: "pointer" }}>
         <Title
           level={4}
           style={{
