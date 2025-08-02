@@ -3,6 +3,7 @@ import asyncio
 from typing import Optional
 
 from groq import AsyncGroq
+from openai import AsyncOpenAI
 from motor.motor_asyncio import AsyncIOMotorClient
 from pymongo.errors import ServerSelectionTimeoutError
 
@@ -11,6 +12,7 @@ from app.config import settings
 logger = logging.getLogger(__name__)
 
 groq_client: Optional[AsyncGroq] = None
+openai_client: Optional[AsyncOpenAI] = None
 mongo_client: Optional[AsyncIOMotorClient] = None
 
 
@@ -19,6 +21,13 @@ async def get_groq_client() -> AsyncGroq:
     if groq_client is None:
         groq_client = AsyncGroq(api_key=settings.groq_api_key)
     return groq_client
+
+
+async def get_openai_client() -> AsyncOpenAI:
+    global openai_client
+    if openai_client is None:
+        openai_client = AsyncOpenAI(api_key=settings.openai_api_key)
+    return openai_client
 
 
 async def get_mongo_client() -> AsyncIOMotorClient:
@@ -41,11 +50,12 @@ async def wait_for_mongo_ready(client: AsyncIOMotorClient, retries: int = 5, del
 
 
 async def initialize_clients():
-    global groq_client, mongo_client
+    global groq_client, openai_client, mongo_client
 
     logger.info("Initializing external clients...")
 
     groq_client = AsyncGroq(api_key=settings.groq_api_key)
+    openai_client = AsyncOpenAI(api_key=settings.openai_api_key)
 
     mongo_client = AsyncIOMotorClient(settings.mongo_uri, serverSelectionTimeoutMS=2000)
     await wait_for_mongo_ready(mongo_client)

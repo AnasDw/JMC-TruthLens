@@ -1,11 +1,23 @@
 from datetime import datetime
+from uuid import uuid4
 
 from fastapi import APIRouter, BackgroundTasks, Depends
 from pydantic import AnyHttpUrl
 
-from app.dependencies import get_groq_client, get_mongo_client
-from core import add_to_db, db_is_working, fact_check_process, summarize, to_english
-from schemas import FactCheckResponse, HealthResponse, TextInputData, FactCheckLabel
+from app.dependencies import get_groq_client, get_openai_client, get_mongo_client
+from core import add_to_db, db_is_working
+from core.db import create_task, get_task_status
+from core.tasks import process_fact_check_task
+from schemas import (
+    FactCheckResponse,
+    HealthResponse,
+    TextInputData,
+    FactCheckLabel,
+    TaskResponse,
+    TaskStatusResponse,
+    TaskData,
+    TaskStatus,
+)
 
 router = APIRouter()
 
@@ -15,47 +27,63 @@ async def health(mongo_client=Depends(get_mongo_client)) -> HealthResponse:
     return HealthResponse(database_is_working=await db_is_working(mongo_client))
 
 
-@router.post("/verify/text/", response_model=FactCheckResponse)
+@router.post("/verify/text/", response_model=TaskResponse)
 async def verify_news(
     data: TextInputData,
     background_tasks: BackgroundTasks,
     groq_client=Depends(get_groq_client),
+    openai_client=Depends(get_openai_client),
     mongo_client=Depends(get_mongo_client),
-) -> FactCheckResponse:
-    dummy_response = FactCheckResponse(
-        url=AnyHttpUrl("https://edition.cnn.com/politics/live-news/trump-epstein-files-news-07-24-25?t=1753530172169"),
-        label=FactCheckLabel.MISLEADING,
-        summary=(
-            "Plant-based meats have an image problem, despite being tasty and environmentally friendly. "
-            "They reduce greenhouse gas emissions by up to 98% and land use by up to 97% compared to beef burgers. "
-            "However, doctors and dietitians are hesitant to recommend them due to being viewed as ultraprocessed, "
-            "despite being a valid option for shifting towards plant-forward diets."
-        ),
-        response=(
-            "The claim is misleading because it accurately presents the environmental benefits and the hesitancy "
-            "from health professionals due to ultra-processing but fails to address the variability in nutritional "
-            "content among plant-based products, which can affect their healthiness."
-        ),
-        isSafe=False,
-        archive="https://web.archive.org/web/20250726114927/https://edition.cnn.com/politics/live-news/trump-epstein-files-news-07-24-25?t=1753530172169",
-        references=[
-            AnyHttpUrl("https://www.sciencedirect.com/science/article/pii/S2666833522000612"),
-            AnyHttpUrl("https://www.cas.org/resources/cas-insights/going-green-plant-based-meat-sustainability"),
-            AnyHttpUrl("https://www.sciencedirect.com/science/article/pii/S0963996924002540"),
-        ],
-        updatedAt=datetime.utcnow(),
+) -> TaskResponse:
+    task_id = uuid4()
+
+    task_data = TaskData(
+        task_id=task_id, status=TaskStatus.PENDING, message="Task created and queued for processing", input_data=data
     )
 
-    return dummy_response
+    await create_task(mongo_client, task_data)
 
-    data.content = await summarize(client=groq_client, text=to_english(text=data.content))
+    background_tasks.add_task(process_fact_check_task, task_id, data, groq_client, openai_client, mongo_client)
 
-    fact_check, is_present_in_db = await fact_check_process(
-        groq_client=groq_client, text_data=data, mongo_client=mongo_client
-    )
+    return TaskResponse(task_id=task_id, status=TaskStatus.PENDING, message="Task created and queued for processing")
 
-    if not is_present_in_db:
-        background_tasks.add_task(add_to_db, mongo_client, fact_check)
 
-    print(fact_check, is_present_in_db)
-    return fact_check
+@router.get("/task/{task_id}/status", response_model=TaskStatusResponse)
+async def get_task_status_endpoint(
+    task_id: str,
+    mongo_client=Depends(get_mongo_client),
+) -> TaskStatusResponse:
+    try:
+        from uuid import UUID
+
+        task_uuid = UUID(task_id)
+        task_data = await get_task_status(mongo_client, task_uuid)
+
+        if not task_data:
+            return TaskStatusResponse(
+                task_id=task_uuid,
+                status=TaskStatus.FAILED,
+                message="Task not found",
+                result=None,
+                created_at=datetime.now(),
+                updated_at=datetime.now(),
+            )
+
+        return TaskStatusResponse(
+            task_id=task_data.task_id,
+            status=task_data.status,
+            message=task_data.message,
+            result=task_data.result,
+            created_at=task_data.created_at,
+            updated_at=task_data.updated_at,
+        )
+
+    except ValueError:
+        return TaskStatusResponse(
+            task_id=task_uuid if "task_uuid" in locals() else uuid4(),
+            status=TaskStatus.FAILED,
+            message="Invalid task ID format",
+            result=None,
+            created_at=datetime.now(),
+            updated_at=datetime.now(),
+        )

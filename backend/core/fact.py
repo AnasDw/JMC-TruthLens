@@ -8,6 +8,7 @@ from bs4 import BeautifulSoup
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel, AnyHttpUrl
 from groq import AsyncGroq
+from openai import AsyncOpenAI
 import instructor
 
 from app.config import settings
@@ -181,7 +182,7 @@ async def search_tool(
 # -------------------------------------------
 # Fact-check orchestration
 # -------------------------------------------
-async def fact_check(groq_client: AsyncGroq, data: TextInputData) -> GPTFactCheckModel:
+async def fact_check(groq_client: AsyncGroq, openai_client: AsyncOpenAI, data: TextInputData) -> GPTFactCheckModel:
     """
     Uses the LLM to:
     1) Craft a focused search query for the claim
@@ -189,11 +190,11 @@ async def fact_check(groq_client: AsyncGroq, data: TextInputData) -> GPTFactChec
     3) Ask the LLM to classify: correct / incorrect / misleading
     """
     claim = data.content
-    client = instructor.from_groq(groq_client)
+    groq_instructor_client = instructor.from_groq(groq_client)
 
-    # Step 1: Generate a search query
+    # Step 1: Generate a search query using Groq
     try:
-        search_query = await client.chat.completions.create(
+        search_query = await groq_instructor_client.chat.completions.create(
             model="llama3-8b-8192",
             response_model=SearchQuery,
             messages=[
@@ -245,31 +246,42 @@ async def fact_check(groq_client: AsyncGroq, data: TextInputData) -> GPTFactChec
             truncated_results.pop()
             search_results_text = ujson.dumps(truncated_results, escape_forward_slashes=False)
 
-    # Step 3: Ask the model to classify the claim
+    # Step 3: Ask the OpenAI model to classify the claim
     try:
-        final_response = await client.chat.completions.create(
-            model="deepseek-r1-distill-llama-70b",
+        openai_instructor_client = instructor.from_openai(openai_client)
+        final_response = await openai_instructor_client.chat.completions.create(
+            model="gpt-4o-mini",
             response_model=GPTFactCheckModel,
             messages=[
                 {
                     "role": "system",
                     "content": (
-                        "You are a fact checker. Based on the following claim and search results, "
-                        "classify the claim as exactly one of: 'correct', 'incorrect', or 'misleading'. "
-                        "Provide a clear explanation and list any relevant source URLs. "
-                        "Be precise with your classification - use 'correct' for true claims, "
-                        "'incorrect' for false claims, and 'misleading' for partially true or ambiguous claims."
+                        "You are a professional fact-checker evaluating short news claims. "
+                        "You will receive a claim and supporting evidence from reputable sources. "
+                        "Classify the claim using exactly one of the following labels:\n\n"
+                        "- 'correct': The claim is factually accurate and properly contextualized.\n"
+                        "- 'incorrect': The claim is factually false or contradicted by evidence.\n"
+                        "- 'misleading': The claim contains some truth but omits key context, uses ambiguous language, or misrepresents the facts.\n\n"
+                        "Your job is to strictly evaluate the *factual content and framing* of the claim. Pay attention to:\n"
+                        "- Whether recent developments have changed the situation.\n"
+                        "- Whether the claim presents partial truths as definitive.\n"
+                        "- Whether phrasing exaggerates or downplays important facts.\n"
+                        "- Whether time-based trends are properly described.\n\n"
+                        "Return:\n"
+                        "1. A label (correct, incorrect, or misleading)\n"
+                        "2. A concise but specific explanation grounded in the evidence\n"
+                        "3. A list of URLs used to support your judgment"
                     ),
                 },
                 {
                     "role": "user",
                     "content": (
-                        f"Claim to fact-check: {claim}\n\n"
-                        f"Search results for reference:\n{search_results_text}\n\n"
+                        f'Claim to fact-check:\n"{claim}"\n\n'
+                        f"Supporting search results:\n{search_results_text}\n\n"
                         f"Please provide:\n"
-                        f"1. A classification (correct/incorrect/misleading)\n"
-                        f"2. A detailed explanation\n"
-                        f"3. Relevant source URLs if available"
+                        f"1. A classification (correct / incorrect / misleading)\n"
+                        f"2. A brief explanation\n"
+                        f"3. A list of source URLs"
                     ),
                 },
             ],
@@ -285,11 +297,9 @@ async def fact_check(groq_client: AsyncGroq, data: TextInputData) -> GPTFactChec
         )
 
 
-# -------------------------------------------
-# Public entry point with DB cache
-# -------------------------------------------
 async def fact_check_process(
     groq_client: AsyncGroq,
+    openai_client: AsyncOpenAI,
     text_data: TextInputData,
     mongo_client: AsyncIOMotorClient,
 ) -> tuple[FactCheckResponse, bool]:
@@ -297,10 +307,8 @@ async def fact_check_process(
     if cached_result:
         return cached_result, True
 
-    # Compute
-    fact_check_result = await fact_check(groq_client, text_data)
+    fact_check_result = await fact_check(groq_client, openai_client, text_data)
 
-    # Validate URLs
     valid_references: List[AnyHttpUrl] = []
     for src in fact_check_result.sources or []:
         if not src or not isinstance(src, str):

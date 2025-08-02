@@ -1,6 +1,7 @@
 from datetime import datetime
 from enum import Enum
 from typing import Optional
+from uuid import UUID
 
 from pydantic import AnyHttpUrl, BaseModel, Field, field_validator
 
@@ -70,3 +71,37 @@ class FactCheckResponse(BaseModel):
     archive: str | None = Field(None, description="The archive url of the site")
     references: list[AnyHttpUrl] = Field([], description="The references of the fact check")
     updatedAt: datetime = Field(default_factory=datetime.now, description="The time of the last update")
+
+
+class TaskStatus(str, Enum):
+    PENDING = "pending"
+    PROCESSING = "processing"
+    SUMMARIZING = "summarizing"
+    FACT_CHECKING = "fact_checking"
+    COMPLETED = "completed"
+    FAILED = "failed"
+
+
+class TaskResponse(BaseModel):
+    task_id: UUID = Field(description="The unique identifier for the task")
+    status: TaskStatus = Field(description="The current status of the task")
+    message: str = Field(default="Task created", description="Status message")
+
+
+class TaskStatusResponse(BaseModel):
+    task_id: UUID = Field(description="The unique identifier for the task")
+    status: TaskStatus = Field(description="The current status of the task")
+    message: str = Field(description="Status message")
+    result: Optional["FactCheckResponse"] = Field(None, description="The result if completed")
+    created_at: datetime = Field(description="When the task was created")
+    updated_at: datetime = Field(description="When the task was last updated")
+
+
+class TaskData(BaseModel):
+    task_id: UUID = Field(description="The unique identifier for the task")
+    status: TaskStatus = Field(description="The current status of the task")
+    message: str = Field(description="Status message")
+    input_data: "TextInputData" = Field(description="The original input data")
+    result: Optional["FactCheckResponse"] = Field(None, description="The result if completed")
+    created_at: datetime = Field(default_factory=datetime.now, description="When the task was created")
+    updated_at: datetime = Field(default_factory=datetime.now, description="When the task was last updated")

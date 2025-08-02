@@ -48,4 +48,4 @@ async def log_requests(request, call_next):
     return response
 
 
-app.include_router(api_router)
+app.include_router(api_router, prefix="/api")

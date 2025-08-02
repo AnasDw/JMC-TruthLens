@@ -5,6 +5,10 @@ from schemas.schemas import (
     GPTFactCheckModel,
     HealthResponse,
     TextInputData,
+    TaskStatus,
+    TaskResponse,
+    TaskStatusResponse,
+    TaskData,
 )
 
 __all__ = [
@@ -13,4 +17,8 @@ __all__ = [
     "GPTFactCheckModel",
     "HealthResponse",
     "TextInputData",
+    "TaskStatus",
+    "TaskResponse",
+    "TaskStatusResponse",
+    "TaskData",
 ]
