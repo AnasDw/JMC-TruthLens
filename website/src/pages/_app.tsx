@@ -1,11 +1,13 @@
 import "../styles/globals.css";
 import type { AppProps } from "next/app";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ConfigProvider } from "antd";
 import { AntdRegistry } from "@ant-design/nextjs-registry";
+import LoadingScreen from "../components/LoadingScreen";
 
 export default function App({ Component, pageProps }: AppProps) {
+  const [isLoading, setIsLoading] = useState(true);
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -17,6 +19,18 @@ export default function App({ Component, pageProps }: AppProps) {
         },
       })
   );
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (isLoading) {
+    return <LoadingScreen />;
+  }
 
   return (
     <QueryClientProvider client={queryClient}>
