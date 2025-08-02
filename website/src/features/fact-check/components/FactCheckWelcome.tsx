@@ -10,6 +10,7 @@ import {
 } from "@ant-design/icons";
 import TextArea from "antd/es/input/TextArea";
 import Image from "next/image";
+import { FloatingActions } from "@/features/components";
 
 const { Title, Paragraph, Text } = Typography;
 const { useBreakpoint } = Grid;
@@ -244,6 +245,7 @@ export const FactCheckWelcome: React.FC<FactCheckWelcomeProps> = ({
           </div>
         </Flex>
       </Flex>
+      <FloatingActions onTipsClick={setInputValue} />
     </Flex>
   );
 };

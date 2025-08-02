@@ -5,7 +5,7 @@ import {
   FactCheckWelcome,
   useFactCheck,
 } from "../features/fact-check";
-import { ChatHeader, FloatingActions } from "@/features/components";
+import { ChatHeader } from "@/features/components";
 import { useRouter } from "next/router";
 
 const { Content } = Layout;
@@ -18,7 +18,6 @@ export default function Home() {
     content,
     factCheckTaskId,
     loading,
-    setContent,
     submitFactCheck,
     resetForm,
     contextHolder,
@@ -63,7 +62,6 @@ export default function Home() {
               />
             )}
           </Content>
-          <FloatingActions onTipsClick={setContent} />
         </Layout>
       </Layout>
     </>
