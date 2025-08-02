@@ -1,34 +1,31 @@
 "use client";
 
-import { useState, useCallback } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import type { FactCheckResult } from "../types";
+import { useState, useCallback, Dispatch, SetStateAction } from "react";
+import { useMutation } from "@tanstack/react-query";
+import type { FactCheckTask } from "../types";
 import { useNotification } from "../../../hooks/useNotification";
+import { useRouter } from "next/router";
 
 interface UseFactCheckReturn {
   content: string;
-  result: FactCheckResult | null;
+  factCheckTaskId: string | null;
   loading: boolean;
   setContent: (content: string) => void;
   submitFactCheck: (inputValue: string) => Promise<void>;
   resetForm: () => void;
   contextHolder: React.ReactElement;
+  setFactCheckTaskId: Dispatch<SetStateAction<string | null>>;
 }
 
 export const useFactCheck = (): UseFactCheckReturn => {
+  const router = useRouter();
   const [content, setContent] = useState<string>("");
-  const [result, setResult] = useState<FactCheckResult | null>(null);
-  const queryClient = useQueryClient();
-  const {
-    contextHolder,
-    success,
-    error: showError,
-    warning,
-  } = useNotification();
+  const [factCheckTaskId, setFactCheckTaskId] = useState<string | null>(null);
+  const { contextHolder, error: showError, warning } = useNotification();
 
-  const mutation = useMutation<FactCheckResult, Error, { content: string }>({
+  const mutation = useMutation<FactCheckTask, Error, { content: string }>({
     mutationFn: async (data: { content: string }) => {
-      const response = await fetch("/api/fact-check", {
+      const response = await fetch("http://localhost:8000/api/verify/text", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -36,21 +33,14 @@ export const useFactCheck = (): UseFactCheckReturn => {
         body: JSON.stringify(data),
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
       return response.json();
     },
     onSuccess: (data) => {
-      setResult(data);
-      queryClient.invalidateQueries({ queryKey: ["fact-checks"] });
-      success({
-        message: "Fact-Check Complete!",
-        description: `Analysis completed for "${
-          data.title
-        }". The claim appears to be ${data.veracity.toUpperCase()}.`,
+      router.push({
+        pathname: "/",
+        query: { task_id: data.task_id },
       });
+      setFactCheckTaskId(data.task_id);
     },
     onError: () => {
       showError({
@@ -86,18 +76,22 @@ export const useFactCheck = (): UseFactCheckReturn => {
 
   const resetForm = useCallback(() => {
     setContent("");
-    setResult(null);
+    setFactCheckTaskId(null);
     mutation.reset();
-  }, [mutation]);
+    router.push({
+      pathname: "/",
+    });
+  }, [mutation, router]);
 
   return {
     content,
-    result,
+    factCheckTaskId,
     loading: mutation.isPending,
     setContent,
     submitFactCheck,
     resetForm,
     contextHolder,
+    setFactCheckTaskId,
   };
 };
 

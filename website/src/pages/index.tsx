@@ -1,25 +1,35 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { Layout } from "antd";
 import {
-  FactCheckForm,
-  FactCheckResult,
+  FactCheckTaskComponent,
   FactCheckWelcome,
   useFactCheck,
 } from "../features/fact-check";
 import { ChatHeader, FloatingActions } from "@/features/components";
+import { useRouter } from "next/router";
 
 const { Content } = Layout;
 
 export default function Home() {
+  const router = useRouter();
+  const { task_id } = router.query;
+
   const {
     content,
-    result,
+    factCheckTaskId,
     loading,
     setContent,
     submitFactCheck,
     resetForm,
     contextHolder,
+    setFactCheckTaskId,
   } = useFactCheck();
+
+  useEffect(() => {
+    if (task_id && !factCheckTaskId) {
+      setFactCheckTaskId(task_id as string);
+    }
+  }, [task_id, setFactCheckTaskId]);
 
   return (
     <>
@@ -33,23 +43,18 @@ export default function Home() {
             style={{
               display: "flex",
               flexDirection: "column",
+              height: "100%",
             }}
           >
-            {true ? (
+            {factCheckTaskId ? (
+              <FactCheckTaskComponent
+                resetForm={resetForm}
+                factCheckTaskId={factCheckTaskId}
+              />
+            ) : (
               <FactCheckWelcome
                 injectedText={content}
                 submitFactCheck={submitFactCheck}
-                loading={loading}
-              />
-            ) : result ? (
-              <FactCheckResult result={result} onNewCheck={resetForm} />
-            ) : (
-              <FactCheckForm
-                title={"title"}
-                content={content}
-                onTitleChange={() => {}}
-                onContentChange={setContent}
-                onSubmit={() => submitFactCheck(content)}
                 loading={loading}
               />
             )}

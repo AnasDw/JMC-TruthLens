@@ -83,14 +83,14 @@ const ChatHeader: React.FC<ChatHeaderProps> = ({
       </Space>
 
       <Space>
-        <Tooltip title="Share conversation">
+        <Tooltip title="Share verification">
           <Button
             icon={<ShareAltOutlined />}
             type="text"
             onClick={onShareConversation}
           />
         </Tooltip>
-        <Tooltip title="Conversation history">
+        <Tooltip title="Verification history">
           <Button
             icon={<HistoryOutlined />}
             type="text"

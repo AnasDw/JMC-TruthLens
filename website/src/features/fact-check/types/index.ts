@@ -1,16 +1,15 @@
-export interface FactCheckResult {
-  id: string;
-  title: string;
-  content: string;
-  veracity: "true" | "partially-true" | "false" | "misleading";
-  confidence: number;
-  sources: Array<{
-    title: string;
-    url: string;
-    credibility: number;
-  }>;
-  explanation: string;
-  timestamp: Date;
+export type TaskStatus =
+  | "pending"
+  | "processing"
+  | "summarizing"
+  | "fact_checking"
+  | "completed"
+  | "failed";
+
+export interface FactCheckTask {
+  task_id: string;
+  status: TaskStatus;
+  message: string;
 }
 
 export interface FactCheckFormProps {
@@ -23,14 +22,14 @@ export interface FactCheckFormProps {
 }
 
 export interface FactCheckResultProps {
-  result: FactCheckResult;
+  result: FactCheckTask;
   onNewCheck?: () => void;
 }
 
 export interface UseFactCheckReturn {
   title: string;
   content: string;
-  result: FactCheckResult | null;
+  result: FactCheckTask | null;
   loading: boolean;
   setTitle: (title: string) => void;
   setContent: (content: string) => void;
