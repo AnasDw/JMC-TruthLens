@@ -9,6 +9,7 @@ import {
   StarOutlined,
 } from "@ant-design/icons";
 import TextArea from "antd/es/input/TextArea";
+import Image from "next/image";
 
 const { Title, Paragraph, Text } = Typography;
 const { useBreakpoint } = Grid;
@@ -59,9 +60,12 @@ export const FactCheckWelcome: React.FC<FactCheckWelcomeProps> = ({
   ];
 
   return (
-    <div
+    <Flex
+      align="center"
+      justify="center"
       style={{
         padding: "40px 20px",
+        height: "100%",
       }}
     >
       <Flex
@@ -86,12 +90,21 @@ export const FactCheckWelcome: React.FC<FactCheckWelcomeProps> = ({
               style={{
                 background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
                 borderRadius: "20px",
-                padding: "16px",
+                padding: "8px",
                 marginBottom: "16px",
                 boxShadow: "0 10px 30px rgba(102, 126, 234, 0.3)",
               }}
             >
-              <EyeOutlined style={{ fontSize: "48px", color: "white" }} />
+              <Image
+                src="/eye.gif"
+                alt="TruthLens Eye"
+                width={48}
+                height={48}
+                style={{
+                  objectFit: "contain",
+                }}
+                unoptimized
+              />
             </div>
 
             <Title
@@ -231,7 +244,7 @@ export const FactCheckWelcome: React.FC<FactCheckWelcomeProps> = ({
           </div>
         </Flex>
       </Flex>
-    </div>
+    </Flex>
   );
 };
 
