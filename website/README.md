@@ -36,19 +36,11 @@ TruthLens AI is a cutting-edge fact-checking platform that uses advanced AI tech
 2. **Install dependencies**
    ```bash
    npm install
-   # or
-   yarn install
-   # or
-   pnpm install
    ```
 
 3. **Run the development server**
    ```bash
    npm run dev
-   # or
-   yarn dev
-   # or
-   pnpm dev
    ```
 
 4. **Open your browser**
@@ -167,8 +159,71 @@ The project follows:
 - [Framer Motion](https://www.framer.com/motion/) for smooth animations
 - [TanStack Query](https://tanstack.com/query) for data fetching
 
-## 📞 Support
 
-For support, email [support@truthlens.ai](mailto:support@truthlens.ai) or join our community discussions.
+## 👥 Authors
+
+<div >
+
+### 🚀 Development Team
+
+<table align="center">
+<tr>
+<td align="center" width="50%">
+<a href="https://github.com/Anas-Emad-Dweik">
+<img src="https://github.com/Anas-Emad-Dweik.png" width="120px" alt="Anas Dweik" style="border-radius: 50%;"/>
+</a>
+<br/>
+<h3>💻 Anas Dweik</h3>
+<p><strong>Full Stack Developer</strong></p>
+<p><em>Backend Specialist</em></p>
+
+[![GitHub](https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Anas-Emad-Dweik)
+[![Email](https://img.shields.io/badge/Email-D14836?style=for-the-badge&logo=gmail&logoColor=white)](mailto:aansdw@edu.jmc.ac.il)
+
+**Student ID:** `322362013`
+
+<details>
+<summary>🛠️ <strong>Key Contributions</strong></summary>
+
+- 🏗️ **Backend Architecture** - Spring Boot setup & configuration
+- 🔐 **Security Implementation** - Authentication & authorization
+- 📊 **Database Design** - Entity modeling & relationships
+- 🛒 **Order Management** - Checkout flow & order processing
+- 📱 **API Development** - RESTful endpoints & controllers
+
+</details>
+</td>
+
+<td align="center" width="50%">
+<a href="https://github.com/Amr-Shwieky2">
+<img src="https://github.com/Amr-Shwieky2.png" width="120px" alt="Amr Shwiki" style="border-radius: 50%;"/>
+</a>
+<br/>
+<h3>🎨 Amr Shwiki</h3>
+<p><strong>Full Stack Developer</strong></p>
+<p><em>Frontend Specialist</em></p>
+
+[![GitHub](https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Amr-Shwieky2)
+[![Email](https://img.shields.io/badge/Email-D14836?style=for-the-badge&logo=gmail&logoColor=white)](mailto:amrsh@edu.jmc.ac.il)
+
+**Student ID:** `212443485`
+
+<details>
+<summary>🛠️ <strong>Key Contributions</strong></summary>
+
+- 🎨 **UI/UX Design** - Modern responsive interface design
+- 🌐 **Frontend Development** - Thymeleaf templates & styling
+- 📱 **JavaScript Features** - Cart functionality & interactions
+- 🎯 **User Experience** - Navigation & user flow optimization
+- 📋 **Testing & QA** - Frontend testing & bug fixes
+
+</details>
+</td>
+</tr>
+</table>
+
+</div>
+
+<div align="center">
 
 ---
