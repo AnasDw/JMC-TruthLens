@@ -1,8 +1,6 @@
+import json
 from pydantic import BaseModel
-from transformers import pipeline
 from groq import AsyncGroq
-
-_zero_shot_pipeline = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
 
 
 class ClaimDetectionResult(BaseModel):
@@ -11,84 +9,80 @@ class ClaimDetectionResult(BaseModel):
     reasoning: str
 
 
-def detect_with_zero_shot(text: str) -> ClaimDetectionResult:
-    candidate_labels = ["claim", "not_claim"]
-    hypothesis_template = "This text is a {}."
-
-    result = _zero_shot_pipeline(
-        text,
-        candidate_labels=candidate_labels,
-        hypothesis_template=hypothesis_template,
-        multi_label=False,
-    )
-
-    top_label = result["labels"][0]
-    top_score = result["scores"][0]
-
-    return ClaimDetectionResult(
-        is_factual_claim=top_label == "claim",
-        confidence=top_score,
-        reasoning=f"Zero-shot classifier labeled it '{top_label}' with confidence {top_score:.2f}",
-    )
-
-
 async def detect_with_llm(groq_client: AsyncGroq, text: str) -> ClaimDetectionResult:
-    prompt = (
-        "Determine whether the following input is a **factual claim** — a statement that asserts something about the world, "
-        "which can be verified as true or false using evidence.\n\n"
-        "Classify something as a factual claim **only if** it:\n"
-        "- Makes a clear and testable statement\n"
-        "- Describes something that has happened, is happening, or will happen in the real world\n"
-        "- Can be proven or disproven using credible sources (e.g., news, data, scientific research)\n\n"
-        "Do **not** classify it as a claim if it is:\n"
-        "- A title, label, or buzzword (e.g., 'AI-powered verification')\n"
-        "- A slogan or brand phrase\n"
-        "- An opinion or emotional expression (e.g., 'I love summer')\n"
-        "- A vague or contextless phrase with no claim (e.g., 'Global warming' is just a topic — "
-        "but 'Global warming is increasing sea levels' is a factual claim)\n"
-        "- A greeting or short sentence with no factual content (e.g., 'Hi there', 'Good morning')\n\n"
-        "Respond with only one word: **yes** or **no**.\n\n"
-        "Examples:\n"
-        "Input: 'I love pizza.'\nOutput: no\n"
-        "Input: 'Vaccines contain microchips for tracking.'\nOutput: yes\n"
-        "Input: 'Global warming.'\nOutput: no\n"
-        "Input: 'The Earth is flat.'\nOutput: yes\n"
-        "Input: 'Hi there!'\nOutput: no\n"
-        "Input: 'Cats are mammals.'\nOutput: yes\n"
-        "Input: 'AI-Powered Verification'\nOutput: no\n"
-        "Input: 'The unemployment rate rose in Q1 of 2023.'\nOutput: yes\n"
-        "Input: 'Climate change is causing more frequent hurricanes in the Atlantic.'\nOutput: yes\n\n"
-        f"Input: '{text.strip()}'\nOutput:"
+    system_msg = (
+        "You are a classifier that decides whether an input is a factual claim. "
+        "A factual claim asserts something about the real world that can be verified true or false. "
+        "IMPORTANT: Your decision is TRUTH-AGNOSTIC. Label as 'claim' even if the statement is false, "
+        "misleading, controversial, conspiratorial, or harmful. Do NOT judge veracity, only claimness."
     )
+
+    # Few-shot examples that mirror the tricky cases
+    guide_examples = (
+        "Examples (label → explanation):\n"
+        "• 'I love pizza.' → not_claim (opinion)\n"
+        "• 'Hi there!' → filler (greeting)\n"
+        "• 'Climate change is causing more frequent hurricanes in the Atlantic' → claim (causal assertion about reality)\n"
+        "• 'COVID-19 vaccines contain microchips for tracking people' → claim (verifiable assertion, regardless of truth)\n"
+        "• '5G networks cause cancer and other health problems' → claim (causal health assertion)\n"
+        "• 'The 2020 US election was rigged with widespread voter fraud' → claim (assertion about an event)\n"
+        "Return ONLY JSON with fields: label ∈ {claim, not_claim, filler}, confidence ∈ [0,1], reason_short."
+    )
+
+    prompt_text = f"{guide_examples}\n\nInput: {text.strip()}"
+
+    schema = {
+        "name": "ClaimDecision",
+        "schema": {
+            "type": "object",
+            "properties": {
+                "label": {"type": "string", "enum": ["claim", "not_claim", "filler"]},
+                "confidence": {"type": "number", "minimum": 0, "maximum": 1},
+                "reason_short": {"type": "string", "maxLength": 160},
+            },
+            "required": ["label", "confidence"],
+            "additionalProperties": False,
+        },
+    }
 
     try:
-        response = await groq_client.chat.completions.create(
-            model="llama3-8b-8192",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=5,
+        resp = await groq_client.chat.completions.create(
+            model="moonshotai/kimi-k2-instruct",
+            messages=[
+                {"role": "system", "content": system_msg},
+                {"role": "user", "content": prompt_text},
+            ],
+            temperature=0,
+            max_tokens=120,
+            response_format={"type": "json_schema", "json_schema": schema},
         )
-        raw_output = response.choices[0].message.content.strip().lower()
-        is_claim = raw_output.startswith("yes")
+
+        content = resp.choices[0].message.content
+        data = json.loads(content)
+
+        label = data.get("label", "not_claim")
+        # Guard confidence
+        try:
+            conf = float(data.get("confidence", 0.5))
+        except Exception:
+            conf = 0.5
+        conf = min(1.0, max(0.0, conf))
+
+        is_claim = label == "claim"
+        reason = data.get("reason_short") or f"LLM labeled '{label}'"
+
         return ClaimDetectionResult(
-            is_factual_claim=is_claim, confidence=1.0 if is_claim else 0.0, reasoning=f"LLM responded: '{raw_output}'"
+            is_factual_claim=is_claim,
+            confidence=conf,
+            reasoning=f"[LLM JSON] {reason} (label={label}, conf={conf:.2f})",
         )
     except Exception as e:
         return ClaimDetectionResult(
-            is_factual_claim=True,
+            is_factual_claim=False,
             confidence=0.0,
-            reasoning=f"LLM failed with error: {str(e)}",
+            reasoning=f"LLM error: {e}",
         )
 
 
 async def detect_factual_claim(groq_client: AsyncGroq, text: str) -> ClaimDetectionResult:
-    classifier_result = detect_with_zero_shot(text)
-
-    confidence = classifier_result.confidence
-
-    is_claim = classifier_result.is_factual_claim
-
-    return ClaimDetectionResult(
-        is_factual_claim=is_claim,
-        confidence=confidence,
-        reasoning=(f"[Classifier] {classifier_result.reasoning}"),
-    )
+    return await detect_with_llm(groq_client, text)
