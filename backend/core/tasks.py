@@ -15,22 +15,31 @@ logger = logging.getLogger(__name__)
 
 
 async def is_factual_claim(groq_client: AsyncGroq, text: str) -> bool:
+    prompt = (
+        "Your job is to determine if a piece of text is a factual claim that can be checked for truthfulness using evidence.\n"
+        "Only answer 'yes' if the input is:\n"
+        "- A complete sentence or assertion\n"
+        "- Expressing a fact about the world\n"
+        "- Can be proven true or false based on evidence (e.g., news articles, data)\n\n"
+        "Do NOT count the following as claims:\n"
+        "- Greetings\n"
+        "- Personal emotions or opinions\n"
+        "- Product names or buzzwords (like 'AI-powered verification')\n"
+        "- Short fragments or slogans\n\n"
+        "Respond only with 'yes' or 'no'.\n\n"
+        f'Text: "{text.strip()}"'
+    )
+
     try:
         response = await groq_client.chat.completions.create(
             model="llama3-8b-8192",
-            messages=[
-                {
-                    "role": "system",
-                    "content": "Determine whether the following input is a factual claim that can be checked or verified. Reply only with 'yes' or 'no'.",
-                },
-                {"role": "user", "content": text.strip()},
-            ],
-            max_tokens=1,
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=5,
         )
         reply = response.choices[0].message.content.strip().lower()
         return reply == "yes"
     except Exception as e:
-        logger.debug("Claim check failed, assuming yes: %s", e)
+        logger.warning("Claim check failed: %s", e)
         return True
 
 
