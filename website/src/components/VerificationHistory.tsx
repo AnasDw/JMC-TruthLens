@@ -18,7 +18,6 @@ import {
   CloseCircleOutlined,
   ClockCircleOutlined,
   ExclamationCircleOutlined,
-  EyeOutlined,
   CalendarOutlined,
 } from "@ant-design/icons";
 
@@ -220,7 +219,7 @@ export const VerificationHistory: React.FC<VerificationHistoryProps> = ({
                     border: "none",
                     background: "transparent",
                   }}
-                  bodyStyle={{ padding: "12px 16px" }}
+                  styles={{ body: { padding: "12px 16px" } }}
                 >
                   <Flex justify="space-between" align="flex-start" gap={16}>
                     <div style={{ flex: 1 }}>

@@ -5,14 +5,12 @@ from typing import Optional
 from fastapi import APIRouter, BackgroundTasks, Depends
 
 from app.dependencies import get_groq_client, get_openai_client, get_mongo_client
-from core import add_to_db, db_is_working
+from core import db_is_working
 from core.db import create_task, get_task_status
 from core.tasks import process_fact_check_task
 from schemas import (
-    FactCheckResponse,
     HealthResponse,
     TextInputData,
-    FactCheckLabel,
     TaskResponse,
     TaskStatusResponse,
     TaskData,
