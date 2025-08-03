@@ -97,21 +97,21 @@ export const useFactCheck = (): UseFactCheckReturn => {
     setFactCheckTaskId(null);
     setHasInputError(false);
     mutation.reset();
-  }, []);
+  }, [mutation]);
 
   const resetForm = useCallback(() => {
     clearState();
     router.push({
       pathname: "/",
     });
-  }, []);
+  }, [clearState, router]);
 
   const handleSetContent = useCallback((newContent: string) => {
     setContent(newContent);
     if (hasInputError) {
       setHasInputError(false);
     }
-  }, []);
+  }, [hasInputError]);
 
   return {
     content,

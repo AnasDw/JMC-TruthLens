@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Typography, Card, Flex, Button, Grid } from "antd";
 import {
   CheckCircleOutlined,
@@ -85,8 +85,9 @@ export const FactCheckWelcome: React.FC<FactCheckWelcomeProps> = ({
       align="center"
       justify="center"
       style={{
-        padding: "40px 20px",
+        padding: "clamp(8px, 2vw, 20px) clamp(8px, 2vw, 16px)",
         height: "100%",
+        overflow: "auto",
       }}
     >
       <Flex
@@ -98,13 +99,13 @@ export const FactCheckWelcome: React.FC<FactCheckWelcomeProps> = ({
           width: "100%",
         }}
       >
-        <Flex vertical align="center" justify="center" gap={48}>
+        <Flex vertical align="center" justify="center" gap={lg ? 32 : 16}>
           {/* Hero Section */}
           <Flex
             justify="center"
             align="center"
             vertical
-            gap={24}
+            gap={lg ? 16 : 8}
             style={{ textAlign: "center" }}
           >
             <div
@@ -119,8 +120,8 @@ export const FactCheckWelcome: React.FC<FactCheckWelcomeProps> = ({
               <Image
                 src="/eye.gif"
                 alt="TruthLens Eye"
-                width={48}
-                height={48}
+                width={lg ? 48 : 40}
+                height={lg ? 48 : 40}
                 style={{
                   objectFit: "contain",
                 }}
@@ -132,13 +133,13 @@ export const FactCheckWelcome: React.FC<FactCheckWelcomeProps> = ({
               level={1}
               style={{
                 margin: 0,
-                fontSize: "56px",
+                fontSize: lg ? "48px" : "clamp(24px, 6vw, 36px)",
                 fontWeight: 700,
                 background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
                 WebkitBackgroundClip: "text",
                 WebkitTextFillColor: "transparent",
                 backgroundClip: "text",
-                lineHeight: 1.2,
+                lineHeight: 1.1,
               }}
             >
               TruthLens AI
@@ -146,11 +147,13 @@ export const FactCheckWelcome: React.FC<FactCheckWelcomeProps> = ({
 
             <Paragraph
               style={{
-                fontSize: "20px",
+                fontSize: lg ? "18px" : "clamp(14px, 3vw, 16px)",
                 color: "#64748b",
                 margin: 0,
-                maxWidth: "600px",
-                lineHeight: 1.6,
+                maxWidth: "500px",
+                lineHeight: 1.4,
+                textAlign: "center",
+                padding: "0 16px",
               }}
             >
               Verify the truthfulness of any statement, news article, or claim
@@ -203,8 +206,8 @@ export const FactCheckWelcome: React.FC<FactCheckWelcomeProps> = ({
           )}
 
           {/* Input Section */}
-          <div style={{ width: "100%", maxWidth: "700px" }}>
-            <Flex vertical gap={16}>
+          <div style={{ width: "100%", maxWidth: "600px", padding: "0 16px" }}>
+            <Flex vertical gap={12}>
               <div style={{ position: "relative" }}>
                 <TextArea
                   value={inputValue}
@@ -212,9 +215,11 @@ export const FactCheckWelcome: React.FC<FactCheckWelcomeProps> = ({
                   placeholder="Enter any statement, claim, or news article you want to verify..."
                   status={hasInputError ? "error" : undefined}
                   style={{
-                    height: 140,
+                    height: lg ? 100 : 80,
                     resize: "none",
-                    borderRadius: "16px",
+                    borderRadius: "12px",
+                    fontSize: "16px",
+                    padding: "16px",
                     border: hasInputError
                       ? "2px solid #ff4d4f"
                       : "2px solid #e2e8f0",
@@ -223,8 +228,6 @@ export const FactCheckWelcome: React.FC<FactCheckWelcomeProps> = ({
                     boxShadow: hasInputError
                       ? "-8px -8px 32px 0 rgba(255, 77, 79, 0.15), 8px 8px 24px 0 rgba(255, 77, 79, 0.3)"
                       : "-8px -8px 32px 0 rgba(103, 89, 223, 0.15), 8px 8px 24px 0 rgba(239, 185, 253, 0.6)",
-                    fontSize: "16px",
-                    padding: "16px",
                     transition: "all 0.3s ease",
                   }}
                   onFocus={(e) => {
@@ -252,10 +255,15 @@ export const FactCheckWelcome: React.FC<FactCheckWelcomeProps> = ({
                   loading={loading}
                   style={{
                     position: "absolute",
-                    bottom: "16px",
-                    right: "16px",
-                    borderRadius: "12px",
+                    bottom: "8px",
+                    right: "8px",
+                    borderRadius: "8px",
+                    height: lg ? "36px" : "32px",
+                    fontSize: "clamp(11px, 2vw, 12px)",
+                    fontWeight: 600,
                     transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+                    paddingLeft: "clamp(12px, 2vw, 16px)",
+                    paddingRight: "clamp(12px, 2vw, 16px)",
                     ...(isValidInput && {
                       background:
                         "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
@@ -263,9 +271,6 @@ export const FactCheckWelcome: React.FC<FactCheckWelcomeProps> = ({
                       transform: "scale(1.02)",
                     }),
                     border: "none",
-                    height: "44px",
-                    paddingLeft: "20px",
-                    paddingRight: "20px",
                   }}
                 />
               </div>

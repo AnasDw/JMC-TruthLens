@@ -40,15 +40,6 @@ export interface WelcomeScreenProps {
   injectedText?: string;
 }
 
-export interface FactCheckFormProps {
-  title: string;
-  content: string;
-  onTitleChange: (title: string) => void;
-  onContentChange: (content: string) => void;
-  onSubmit: () => void;
-  loading?: boolean;
-}
-
 export interface FactCheckResultProps {
   result: FactCheckResult;
   onNewCheck?: () => void;
