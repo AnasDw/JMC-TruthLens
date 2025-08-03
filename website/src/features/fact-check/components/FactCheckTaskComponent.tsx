@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Steps, Card, Button, Alert, Typography, Flex, Tag, Space } from "antd";
+import { Steps, Card, Button, Alert, Typography, Flex, Tag, Space, Spin } from "antd";
 import {
   CheckCircleOutlined,
   LoadingOutlined,
@@ -342,6 +342,11 @@ export const FactCheckTaskComponent: React.FC<FactCheckTaskProps> = ({
   }, [factCheckTaskId, onTaskComplete]);
 
   useEffect(() => {
+    // Don't start if we don't have a valid task ID
+    if (!factCheckTaskId || factCheckTaskId.trim() === '') {
+      return;
+    }
+
     // Reset state when factCheckTaskId changes
     setTaskStatus(null);
     setError(null);
@@ -425,6 +430,20 @@ export const FactCheckTaskComponent: React.FC<FactCheckTaskProps> = ({
   if (taskStatus?.status === "completed" && taskStatus.result) {
     return (
       <FactCheckResults result={taskStatus.result} onNewCheck={resetForm} />
+    );
+  }
+
+  // Show loading state if we haven't fetched task data yet
+  if (!taskStatus && !error) {
+    return (
+      <Flex align="center" justify="center" style={{ height: "100%" }}>
+        <Card style={{ maxWidth: 600, margin: "0 auto", height: "fit-content" }}>
+          <div style={{ textAlign: "center", padding: "40px 20px" }}>
+            <Title level={3} style={{ marginBottom: "16px" }}>Loading Task Details...</Title>
+            <Spin size="large" />
+          </div>
+        </Card>
+      </Flex>
     );
   }
 

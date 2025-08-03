@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Layout } from "antd";
 import {
   FactCheckTaskComponent,
@@ -28,7 +28,17 @@ export default function Home() {
     setFactCheckTaskId,
   } = useFactCheck();
 
+  // Track if we're still processing the router query
+  const [isRouterReady, setIsRouterReady] = useState(false);
+
   useEffect(() => {
+    // Wait for router to be ready
+    if (!router.isReady) {
+      return;
+    }
+
+    setIsRouterReady(true);
+
     if (!task_id) {
       clearState();
       return;
@@ -41,7 +51,12 @@ export default function Home() {
     if (validTaskId && validTaskId !== factCheckTaskId) {
       setFactCheckTaskId(validTaskId);
     }
-  }, [task_id, factCheckTaskId, clearState, setFactCheckTaskId]);
+  }, [router.isReady, task_id, factCheckTaskId, clearState, setFactCheckTaskId]);
+
+  // Don't render anything until router is ready
+  if (!isRouterReady) {
+    return null;
+  }
 
   return (
     <>
