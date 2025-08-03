@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Layout } from "antd";
 import {
   FactCheckTaskComponent,
@@ -31,27 +31,39 @@ export default function Home() {
   // Track if we're still processing the router query
   const [isRouterReady, setIsRouterReady] = useState(false);
 
+  // Separate effect to handle router readiness
   useEffect(() => {
-    // Wait for router to be ready
-    if (!router.isReady) {
+    if (router.isReady) {
+      setIsRouterReady(true);
+    }
+  }, [router.isReady]);
+
+  // Separate effect to handle task_id changes
+  const previousTaskIdRef = useRef(factCheckTaskId);
+  
+  useEffect(() => {
+    if (!isRouterReady) {
       return;
     }
 
-    setIsRouterReady(true);
+    const currentTaskId = typeof task_id === 'string' ? task_id.trim() : null;
 
-    if (!task_id) {
-      clearState();
+    if (!currentTaskId) {
+      // Only clear if we previously had a task ID
+      if (previousTaskIdRef.current) {
+        clearState();
+        previousTaskIdRef.current = null;
+      }
       return;
     }
 
-    // Validate task_id is a string and not an array
-    const validTaskId = typeof task_id === 'string' ? task_id.trim() : null;
-    
-    // Update task ID if it's different from the current one
-    if (validTaskId && validTaskId !== factCheckTaskId) {
-      setFactCheckTaskId(validTaskId);
+    // Only update if the task ID is different from previous
+    if (currentTaskId !== previousTaskIdRef.current) {
+      setFactCheckTaskId(currentTaskId);
+      previousTaskIdRef.current = currentTaskId;
     }
-  }, [router.isReady, task_id, factCheckTaskId, clearState, setFactCheckTaskId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isRouterReady, task_id]); // Intentionally excluding clearState and setFactCheckTaskId to prevent infinite loop
 
   // Don't render anything until router is ready
   if (!isRouterReady) {

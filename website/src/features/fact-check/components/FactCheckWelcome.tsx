@@ -218,8 +218,8 @@ export const FactCheckWelcome: React.FC<FactCheckWelcomeProps> = ({
                     height: lg ? 100 : 80,
                     resize: "none",
                     borderRadius: "12px",
-                    fontSize: "clamp(13px, 2vw, 14px)",
-                    padding: "clamp(8px, 2vw, 12px)",
+                    fontSize: "16px",
+                    padding: "16px",
                     border: hasInputError
                       ? "2px solid #ff4d4f"
                       : "2px solid #e2e8f0",
@@ -228,8 +228,6 @@ export const FactCheckWelcome: React.FC<FactCheckWelcomeProps> = ({
                     boxShadow: hasInputError
                       ? "-8px -8px 32px 0 rgba(255, 77, 79, 0.15), 8px 8px 24px 0 rgba(255, 77, 79, 0.3)"
                       : "-8px -8px 32px 0 rgba(103, 89, 223, 0.15), 8px 8px 24px 0 rgba(239, 185, 253, 0.6)",
-                    fontSize: "16px",
-                    padding: "16px",
                     transition: "all 0.3s ease",
                   }}
                   onFocus={(e) => {

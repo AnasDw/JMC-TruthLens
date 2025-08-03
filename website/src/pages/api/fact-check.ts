@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from "next";
-import type { FactCheckResult } from "../../features/fact-check/types";
+import { FactCheckResult } from "@/types";
 
 export default async function handler(
   req: NextApiRequest,
