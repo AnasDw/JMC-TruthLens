@@ -150,7 +150,7 @@ export const FactCheckWelcome: React.FC<FactCheckWelcomeProps> = ({
                 fontSize: lg ? "18px" : "clamp(14px, 3vw, 16px)",
                 color: "#64748b",
                 margin: 0,
-                maxWidth: "500px",
+                maxWidth: 600,
                 lineHeight: 1.4,
                 textAlign: "center",
                 padding: "0 16px",
