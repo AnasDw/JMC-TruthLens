@@ -5,6 +5,8 @@ from uuid import UUID
 
 from pydantic import AnyHttpUrl, BaseModel, Field, field_validator
 
+from core.fallacies_and_bias import ReasoningIssueAnalysis
+
 
 class TextInputData(BaseModel):
     url: Optional[AnyHttpUrl] = Field(None, description="The url of the article")
@@ -94,6 +96,7 @@ class TaskStatusResponse(BaseModel):
     status: TaskStatus = Field(description="The current status of the task")
     message: str = Field(description="Status message")
     result: Optional["FactCheckResponse"] = Field(None, description="The result if completed")
+    fallacy_result: Optional["ReasoningIssueAnalysis"] = Field(None, description="The reasoning issue analysis result")
     created_at: datetime = Field(description="When the task was created")
     updated_at: datetime = Field(description="When the task was last updated")
 
@@ -104,5 +107,6 @@ class TaskData(BaseModel):
     message: str = Field(description="Status message")
     input_data: "TextInputData" = Field(description="The original input data")
     result: Optional["FactCheckResponse"] = Field(None, description="The result if completed")
+    fallacy_result: Optional["ReasoningIssueAnalysis"] = Field(None, description="The reasoning issue analysis result")
     created_at: datetime = Field(default_factory=datetime.now, description="When the task was created")
     updated_at: datetime = Field(default_factory=datetime.now, description="When the task was last updated")

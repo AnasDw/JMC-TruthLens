@@ -70,6 +70,7 @@ async def get_task_status_endpoint(
                 status=TaskStatus.FAILED,
                 message="Task not found",
                 result=None,
+                fallacy_result=None,
                 created_at=datetime.now(),
                 updated_at=datetime.now(),
             )
@@ -81,6 +82,7 @@ async def get_task_status_endpoint(
             result=task_data.result,
             created_at=task_data.created_at,
             updated_at=task_data.updated_at,
+            fallacy_result=task_data.fallacy_result,
         )
 
     except ValueError:
@@ -89,6 +91,7 @@ async def get_task_status_endpoint(
             status=TaskStatus.FAILED,
             message="Invalid task ID format",
             result=None,
+            fallacy_result=None,
             created_at=datetime.now(),
             updated_at=datetime.now(),
         )

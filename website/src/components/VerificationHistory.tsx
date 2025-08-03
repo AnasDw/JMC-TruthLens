@@ -23,6 +23,12 @@ import {
 
 const { Text } = Typography;
 
+interface ReasoningIssueAnalysis {
+  fallacies: string[];
+  bias_indicators: string[];
+  explanation: string;
+}
+
 interface FactCheckResult {
   url: string | null;
   label: "correct" | "incorrect" | "partially-correct" | "misleading";
@@ -47,6 +53,7 @@ interface TaskStatusResponse {
   result?: FactCheckResult;
   created_at: string;
   updated_at: string;
+  fallacy_result?: ReasoningIssueAnalysis;
 }
 
 interface VerificationHistoryProps {
