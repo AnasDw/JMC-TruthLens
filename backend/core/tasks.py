@@ -14,6 +14,26 @@ from schemas import TaskStatus, TextInputData, FactCheckResponse
 logger = logging.getLogger(__name__)
 
 
+async def is_factual_claim(groq_client: AsyncGroq, text: str) -> bool:
+    try:
+        response = await groq_client.chat.completions.create(
+            model="llama3-8b-8192",
+            messages=[
+                {
+                    "role": "system",
+                    "content": "Determine whether the following input is a factual claim that can be checked or verified. Reply only with 'yes' or 'no'.",
+                },
+                {"role": "user", "content": text.strip()},
+            ],
+            max_tokens=1,
+        )
+        reply = response.choices[0].message.content.strip().lower()
+        return reply == "yes"
+    except Exception as e:
+        logger.debug("Claim check failed, assuming yes: %s", e)
+        return True
+
+
 async def process_fact_check_task(
     task_id: UUID,
     data: TextInputData,

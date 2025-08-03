@@ -4,7 +4,8 @@ export type TaskStatus =
   | "summarizing"
   | "fact_checking"
   | "completed"
-  | "failed";
+  | "failed"
+  | "skipped";
 
 export interface FactCheckTask {
   task_id: string;

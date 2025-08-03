@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { use, useEffect } from "react";
 import { Layout } from "antd";
 import {
   FactCheckTaskComponent,
@@ -18,21 +18,23 @@ export default function Home() {
     content,
     factCheckTaskId,
     loading,
+    hasInputError,
     submitFactCheck,
     resetForm,
+    clearState,
     contextHolder,
     setFactCheckTaskId,
   } = useFactCheck();
 
   useEffect(() => {
     if (!task_id) {
-      resetForm();
+      clearState();
     }
 
     if (task_id && !factCheckTaskId) {
       setFactCheckTaskId(task_id as string);
     }
-  }, [task_id, setFactCheckTaskId]);
+  }, [task_id, factCheckTaskId, clearState, setFactCheckTaskId]);
 
   return (
     <>
@@ -59,6 +61,7 @@ export default function Home() {
                 injectedText={content}
                 submitFactCheck={submitFactCheck}
                 loading={loading}
+                hasInputError={hasInputError}
               />
             )}
           </Content>

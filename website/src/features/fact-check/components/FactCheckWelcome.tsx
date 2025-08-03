@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Typography, Card, Flex, Button, Grid } from "antd";
 import {
   CheckCircleOutlined,
@@ -19,12 +19,14 @@ interface FactCheckWelcomeProps {
   injectedText?: string;
   submitFactCheck: (inputValue: string) => Promise<void>;
   loading: boolean;
+  hasInputError?: boolean;
 }
 
 export const FactCheckWelcome: React.FC<FactCheckWelcomeProps> = ({
   injectedText,
   submitFactCheck,
   loading,
+  hasInputError = false,
 }) => {
   const [inputValue, setInputValue] = useState("");
 
@@ -190,28 +192,36 @@ export const FactCheckWelcome: React.FC<FactCheckWelcomeProps> = ({
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   placeholder="Enter any statement, claim, or news article you want to verify..."
+                  status={hasInputError ? "error" : undefined}
                   style={{
                     height: 140,
                     resize: "none",
                     borderRadius: "16px",
-                    border: "2px solid #e2e8f0",
+                    border: hasInputError
+                      ? "2px solid #ff4d4f"
+                      : "2px solid #e2e8f0",
                     background: "rgba(255, 255, 255, 0.95)",
                     backdropFilter: "blur(10px)",
-                    boxShadow:
-                      "-8px -8px 32px 0 rgba(103, 89, 223, 0.15), 8px 8px 24px 0 rgba(239, 185, 253, 0.6)",
+                    boxShadow: hasInputError
+                      ? "-8px -8px 32px 0 rgba(255, 77, 79, 0.15), 8px 8px 24px 0 rgba(255, 77, 79, 0.3)"
+                      : "-8px -8px 32px 0 rgba(103, 89, 223, 0.15), 8px 8px 24px 0 rgba(239, 185, 253, 0.6)",
                     fontSize: "16px",
                     padding: "16px",
                     transition: "all 0.3s ease",
                   }}
                   onFocus={(e) => {
-                    e.target.style.boxShadow =
-                      "-8px -8px 32px 0 rgba(103, 89, 223, 0.25), 8px 8px 24px 0 rgba(239, 185, 253, 0.8), 0 0 0 3px rgba(102, 126, 234, 0.1)";
+                    if (!hasInputError) {
+                      e.target.style.boxShadow =
+                        "-8px -8px 32px 0 rgba(103, 89, 223, 0.25), 8px 8px 24px 0 rgba(239, 185, 253, 0.8), 0 0 0 3px rgba(102, 126, 234, 0.1)";
+                    }
                   }}
                   readOnly={loading}
                   onBlur={(e) => {
-                    e.target.style.borderColor = "#e2e8f0";
-                    e.target.style.boxShadow =
-                      "-8px -8px 32px 0 rgba(103, 89, 223, 0.15), 8px 8px 24px 0 rgba(239, 185, 253, 0.6)";
+                    if (!hasInputError) {
+                      e.target.style.borderColor = "#e2e8f0";
+                      e.target.style.boxShadow =
+                        "-8px -8px 32px 0 rgba(103, 89, 223, 0.15), 8px 8px 24px 0 rgba(239, 185, 253, 0.6)";
+                    }
                   }}
                 />
 

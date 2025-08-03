@@ -75,6 +75,7 @@ class FactCheckResponse(BaseModel):
 
 class TaskStatus(str, Enum):
     PENDING = "pending"
+    SKIPPED = "skipped"
     PROCESSING = "processing"
     SUMMARIZING = "summarizing"
     FACT_CHECKING = "fact_checking"
