@@ -8,7 +8,6 @@ import {
   Tag,
   Typography,
   Space,
-  Button,
   Empty,
   Spin,
   Flex,
@@ -129,9 +128,6 @@ export const VerificationHistory: React.FC<VerificationHistoryProps> = ({
 }) => {
   const [tasks, setTasks] = useState<TaskStatusResponse[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedTask, setSelectedTask] = useState<TaskStatusResponse | null>(
-    null
-  );
 
   const fetchTasks = async () => {
     setLoading(true);
@@ -155,10 +151,6 @@ export const VerificationHistory: React.FC<VerificationHistoryProps> = ({
       fetchTasks();
     }
   }, [open]);
-
-  const handleTaskClick = (task: TaskStatusResponse) => {
-    setSelectedTask(task);
-  };
 
   const handleSelectTask = (task: TaskStatusResponse) => {
     if (onSelectTask) {
@@ -199,25 +191,34 @@ export const VerificationHistory: React.FC<VerificationHistoryProps> = ({
             renderItem={(task) => (
               <List.Item
                 style={{
-                  cursor: "pointer",
+                  cursor: task.status === "completed" && task.result ? "pointer" : "default",
                   borderRadius: "12px",
                   marginBottom: "12px",
                   background: "#fafafa",
                   border: "1px solid #f0f0f0",
                   transition: "all 0.2s ease",
+                  opacity: task.status === "completed" && task.result ? 1 : 0.7,
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.background = "#f5f5f5";
-                  e.currentTarget.style.transform = "translateY(-2px)";
-                  e.currentTarget.style.boxShadow =
-                    "0 4px 12px rgba(0,0,0,0.1)";
+                  if (task.status === "completed" && task.result) {
+                    e.currentTarget.style.background = "#f5f5f5";
+                    e.currentTarget.style.transform = "translateY(-2px)";
+                    e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,0.1)";
+                  }
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.background = "#fafafa";
-                  e.currentTarget.style.transform = "translateY(0)";
-                  e.currentTarget.style.boxShadow = "none";
+                  if (task.status === "completed" && task.result) {
+                    e.currentTarget.style.background = "#fafafa";
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.boxShadow = "none";
+                  }
                 }}
-                onClick={() => handleTaskClick(task)}
+                onClick={() => {
+                  // Only navigate if the task is completed and has results
+                  if (task.status === "completed" && task.result) {
+                    handleSelectTask(task);
+                  }
+                }}
               >
                 <Card
                   size="small"
@@ -268,100 +269,11 @@ export const VerificationHistory: React.FC<VerificationHistoryProps> = ({
                         </Text>
                       </Flex>
                     </div>
-
-                    {task.status === "completed" && task.result && (
-                      <Button
-                        type="primary"
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleSelectTask(task);
-                        }}
-                        style={{
-                          background:
-                            "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                          border: "none",
-                          borderRadius: "6px",
-                        }}
-                      >
-                        View Details
-                      </Button>
-                    )}
                   </Flex>
                 </Card>
               </List.Item>
             )}
           />
-        )}
-      </Modal>
-
-      {/* Task Detail Modal */}
-      <Modal
-        title="Task Details"
-        open={!!selectedTask}
-        onCancel={() => setSelectedTask(null)}
-        footer={
-          selectedTask?.status === "completed" && selectedTask.result ? (
-            <Button
-              type="primary"
-              onClick={() => handleSelectTask(selectedTask)}
-              style={{
-                background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                border: "none",
-                borderRadius: "8px",
-              }}
-            >
-              View Full Results
-            </Button>
-          ) : null
-        }
-        width={600}
-      >
-        {selectedTask && (
-          <Space direction="vertical" style={{ width: "100%" }} size="middle">
-            <Flex gap={8}>
-              <Tag color={getStatusColor(selectedTask.status)}>
-                {selectedTask.status.toUpperCase()}
-              </Tag>
-              {selectedTask.result && (
-                <Tag color={getLabelColor(selectedTask.result.label)}>
-                  {getLabelText(selectedTask.result.label)}
-                </Tag>
-              )}
-            </Flex>
-
-            <div>
-              <Text strong>Task ID:</Text>
-              <br />
-              <Text code style={{ fontSize: "12px" }}>
-                {selectedTask.task_id}
-              </Text>
-            </div>
-
-            {selectedTask.result?.summary && (
-              <div>
-                <Text strong>Statement:</Text>
-                <br />
-                <Text>{selectedTask.result.summary}</Text>
-              </div>
-            )}
-
-            {selectedTask.result?.response && (
-              <div>
-                <Text strong>Analysis:</Text>
-                <br />
-                <Text>{selectedTask.result.response.substring(0, 200)}...</Text>
-              </div>
-            )}
-
-            <div>
-              <Text strong>Created:</Text>
-              <br />
-              <Text type="secondary">
-                {new Date(selectedTask.created_at).toLocaleString()}
-              </Text>
-            </div>
-          </Space>
         )}
       </Modal>
     </>
