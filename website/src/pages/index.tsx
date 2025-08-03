@@ -1,4 +1,4 @@
-import React, { use, useEffect } from "react";
+import React, { useEffect } from "react";
 import { Layout } from "antd";
 import {
   FactCheckTaskComponent,
@@ -7,6 +7,8 @@ import {
 } from "../features/fact-check";
 import { ChatHeader } from "@/features/components";
 import { useRouter } from "next/router";
+import { ErrorBoundary } from "../components/ErrorBoundary";
+import { FactCheckErrorFallback } from "../components/FactCheckErrorFallback";
 
 const { Content } = Layout;
 
@@ -29,44 +31,61 @@ export default function Home() {
   useEffect(() => {
     if (!task_id) {
       clearState();
+      return;
     }
 
-    if (task_id && !factCheckTaskId) {
-      setFactCheckTaskId(task_id as string);
+    // Validate task_id is a string and not an array
+    const validTaskId = typeof task_id === 'string' ? task_id.trim() : null;
+    
+    // Update task ID if it's different from the current one
+    if (validTaskId && validTaskId !== factCheckTaskId) {
+      setFactCheckTaskId(validTaskId);
     }
   }, [task_id, factCheckTaskId, clearState, setFactCheckTaskId]);
 
   return (
     <>
       {contextHolder}
-      <Layout
-        style={{ height: "100vh", background: "#fafafa", overflow: "hidden" }}
-      >
-        <ChatHeader />
-        <Layout>
-          <Content
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              height: "100%",
-            }}
-          >
-            {factCheckTaskId ? (
-              <FactCheckTaskComponent
-                resetForm={resetForm}
-                factCheckTaskId={factCheckTaskId}
-              />
-            ) : (
-              <FactCheckWelcome
-                injectedText={content}
-                submitFactCheck={submitFactCheck}
-                loading={loading}
-                hasInputError={hasInputError}
-              />
-            )}
-          </Content>
+      <ErrorBoundary>
+        <Layout
+          style={{ 
+            height: "100vh", 
+            background: "#fafafa", 
+            overflow: "hidden",
+          }}
+        >
+          <ErrorBoundary>
+            <ChatHeader />
+          </ErrorBoundary>
+          <Layout style={{ flexDirection: "column" }}>
+            <Content
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                height: "calc(100vh - 56px)", // Subtract smaller header height
+                padding: "clamp(4px, 1vw, 8px)",
+                overflow: "auto",
+              }}
+            >
+              <ErrorBoundary fallback={FactCheckErrorFallback}>
+                {factCheckTaskId ? (
+                  <FactCheckTaskComponent
+                    resetForm={resetForm}
+                    factCheckTaskId={factCheckTaskId}
+                  />
+                ) : (
+                  <FactCheckWelcome
+                    injectedText={content}
+                    submitFactCheck={submitFactCheck}
+                    loading={loading}
+                    hasInputError={hasInputError}
+                  />
+                )}
+              </ErrorBoundary>
+            </Content>
+          </Layout>
         </Layout>
-      </Layout>
+      </ErrorBoundary>
     </>
   );
 }

@@ -5,6 +5,8 @@ import { useState, useEffect } from "react";
 import { ConfigProvider } from "antd";
 import { AntdRegistry } from "@ant-design/nextjs-registry";
 import LoadingScreen from "../features/components/LoadingScreen";
+import ErrorBoundary from "../components/ErrorBoundary";
+import Head from "next/head";
 
 export default function App({ Component, pageProps }: AppProps) {
   const [isLoading, setIsLoading] = useState(true);
@@ -21,9 +23,10 @@ export default function App({ Component, pageProps }: AppProps) {
   );
 
   useEffect(() => {
+    // Reduce loading time from 3 seconds to 1 second for better UX
     const timer = setTimeout(() => {
       setIsLoading(false);
-    }, 3000);
+    }, 1000);
 
     return () => clearTimeout(timer);
   }, []);
@@ -33,19 +36,26 @@ export default function App({ Component, pageProps }: AppProps) {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <AntdRegistry>
-        <ConfigProvider
-          theme={{
-            token: {
-              colorPrimary: "#764ba2",
-            },
-          }}
-        >
-          <Component {...pageProps} />
-        </ConfigProvider>
-      </AntdRegistry>
-    </QueryClientProvider>
+    <>
+      <Head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+      </Head>
+      <QueryClientProvider client={queryClient}>
+        <AntdRegistry>
+          <ConfigProvider
+            theme={{
+              token: {
+                colorPrimary: "#764ba2",
+              },
+            }}
+          >
+            <ErrorBoundary>
+              <Component {...pageProps} />
+            </ErrorBoundary>
+          </ConfigProvider>
+        </AntdRegistry>
+      </QueryClientProvider>
+    </>
   );
 }
 

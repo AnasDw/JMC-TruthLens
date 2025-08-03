@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { memo, useCallback } from "react";
 import { Card, Input, Button, Typography, Form } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
 import type { FactCheckFormProps } from "../types";
@@ -8,7 +8,7 @@ import type { FactCheckFormProps } from "../types";
 const { TextArea } = Input;
 const { Text } = Typography;
 
-export const FactCheckForm: React.FC<FactCheckFormProps> = ({
+export const FactCheckForm: React.FC<FactCheckFormProps> = memo(({
   title,
   content,
   onTitleChange,
@@ -18,34 +18,50 @@ export const FactCheckForm: React.FC<FactCheckFormProps> = ({
 }) => {
   const [form] = Form.useForm();
 
-  const handleSubmit = () => {
+  const handleSubmit = useCallback(() => {
     form.validateFields().then(() => {
       onSubmit();
     });
-  };
+  }, [form, onSubmit]);
+
+  const handleTitleChange = useCallback((value: string) => {
+    onTitleChange(value);
+  }, [onTitleChange]);
+
+  const handleContentChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    onContentChange(e.target.value);
+  }, [onContentChange]);
 
   const isDisabled = loading || !title.trim() || !content.trim();
 
   return (
     <div
       style={{
-        maxWidth: "800px",
+        maxWidth: "700px",
         margin: "0 auto",
         width: "100%",
+        padding: "0 12px",
       }}
+      role="main"
+      aria-label="Fact-checking form"
     >
       <Card
         style={{
-          borderRadius: "16px",
-          boxShadow: "0 8px 24px rgba(0,0,0,0.1)",
+          borderRadius: "12px",
+          boxShadow: "0 4px 16px rgba(0,0,0,0.08)",
           border: "1px solid #e6f4ff",
+          width: "100%",
         }}
-        styles={{ body: { padding: "32px" } }}
+        styles={{ 
+          body: { 
+            padding: "clamp(12px, 3vw, 20px)",
+          } 
+        }}
       >
         <Form form={form} layout="vertical" onFinish={handleSubmit}>
           <Form.Item
             label={
-              <Text strong style={{ fontSize: "16px" }}>
+              <Text strong style={{ fontSize: "clamp(14px, 2.5vw, 16px)" }}>
                 Title or Claim
               </Text>
             }
@@ -62,17 +78,24 @@ export const FactCheckForm: React.FC<FactCheckFormProps> = ({
               size="large"
               placeholder="e.g., 'Climate change is causing more frequent hurricanes'"
               value={title}
-              onChange={(e) => onTitleChange(e.target.value)}
+              onChange={(e) => handleTitleChange(e.target.value)}
+              aria-label="Claim title input"
+              aria-describedby="title-help"
               style={{
                 borderRadius: "8px",
-                fontSize: "16px",
+                fontSize: "clamp(13px, 2vw, 14px)",
+                padding: "clamp(6px, 1.5vw, 8px) clamp(8px, 2vw, 12px)",
+                minHeight: "40px",
               }}
             />
           </Form.Item>
+          <div id="title-help" className="sr-only">
+            Enter a clear, specific claim or statement that you want to fact-check
+          </div>
 
           <Form.Item
             label={
-              <Text strong style={{ fontSize: "16px" }}>
+              <Text strong style={{ fontSize: "clamp(14px, 2.5vw, 16px)" }}>
                 Full Text or Context
               </Text>
             }
@@ -89,15 +112,21 @@ export const FactCheckForm: React.FC<FactCheckFormProps> = ({
               size="large"
               placeholder="Paste the article, statement, or provide additional context for fact-checking..."
               value={content}
-              onChange={(e) => onContentChange(e.target.value)}
-              autoSize={{ minRows: 4, maxRows: 8 }}
+              onChange={handleContentChange}
+              autoSize={{ minRows: 2, maxRows: 5 }}
+              aria-label="Content or context input"
+              aria-describedby="content-help"
               style={{
                 borderRadius: "8px",
-                fontSize: "16px",
-                lineHeight: 1.6,
+                fontSize: "clamp(13px, 2vw, 14px)",
+                lineHeight: 1.4,
+                padding: "clamp(6px, 1.5vw, 8px) clamp(8px, 2vw, 12px)",
               }}
             />
           </Form.Item>
+          <div id="content-help" className="sr-only">
+            Provide the full text, article, or additional context related to the claim you want to fact-check
+          </div>
 
           <Form.Item style={{ marginBottom: 0, textAlign: "center" }}>
             <Button
@@ -107,29 +136,38 @@ export const FactCheckForm: React.FC<FactCheckFormProps> = ({
               onClick={handleSubmit}
               loading={loading}
               disabled={isDisabled}
+              aria-label={loading ? "Analyzing claim..." : "Start fact-checking verification"}
+              aria-describedby="submit-help"
               style={{
                 borderRadius: "8px",
-                height: "48px",
-                fontSize: "16px",
+                height: "clamp(36px, 6vw, 40px)",
+                fontSize: "clamp(12px, 2vw, 14px)",
                 fontWeight: 600,
-                paddingLeft: "32px",
-                paddingRight: "32px",
+                paddingLeft: "clamp(12px, 3vw, 20px)",
+                paddingRight: "clamp(12px, 3vw, 20px)",
                 background: isDisabled ? undefined : "#1677ff",
                 borderColor: isDisabled ? undefined : "#1677ff",
+                width: "100%",
+                maxWidth: "200px",
               }}
             >
               {loading ? "Analyzing..." : "Verify Truth"}
             </Button>
           </Form.Item>
+          <div id="submit-help" className="sr-only">
+            Click to start the AI-powered fact-checking analysis of your claim
+          </div>
         </Form>
 
         <Text
           type="secondary"
           style={{
-            fontSize: "12px",
+            fontSize: "clamp(10px, 2vw, 12px)",
             display: "block",
             textAlign: "center",
             marginTop: "16px",
+            lineHeight: 1.4,
+            padding: "0 8px",
           }}
         >
           Analysis powered by AI • Results may require human verification for
@@ -138,5 +176,7 @@ export const FactCheckForm: React.FC<FactCheckFormProps> = ({
       </Card>
     </div>
   );
-};
+});
+
+FactCheckForm.displayName = 'FactCheckForm';
 
