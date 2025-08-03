@@ -1,13 +1,15 @@
 import logging
+from datetime import datetime, UTC
 from uuid import UUID
-from typing import Optional
 
+import ujson
 from groq import AsyncGroq
 from openai import AsyncOpenAI
 from motor.motor_asyncio import AsyncIOMotorClient
 
 from core.db import update_task_status, add_to_db
 from core.fact import fact_check_process
+from core.fallacies_and_bias import detect_fallacies_and_bias
 from core.preprocessors import summarize, to_english
 from schemas import TaskStatus, TextInputData, FactCheckResponse
 
@@ -33,6 +35,8 @@ async def process_fact_check_task(
 
         await update_task_status(mongo_client, task_id, TaskStatus.FACT_CHECKING, "Performing fact check analysis")
 
+        fallacy_result = await detect_fallacies_and_bias(groq_client, original_content)
+
         fact_check_result, is_cached = await fact_check_process(
             groq_client=groq_client,
             openai_client=openai_client,
@@ -44,11 +48,7 @@ async def process_fact_check_task(
             await add_to_db(mongo_client, fact_check_result)
 
         await save_task_completion(
-            mongo_client,
-            task_id,
-            original_content,
-            summarized_content,
-            fact_check_result,
+            mongo_client, task_id, original_content, summarized_content, fact_check_result, fallacy_result
         )
 
         logger.info(f"Task {task_id} completed successfully")
@@ -64,11 +64,8 @@ async def save_task_completion(
     original_content: str,
     summarized_content: str,
     fact_check_result: "FactCheckResponse",
+    fallacy_result=None,
 ) -> None:
-    """
-    Save the completed task with all processing data including original text,
-    summarized content, and fact check results.
-    """
     try:
         from core.db import update_task_status
         from schemas import TaskStatus
@@ -81,15 +78,18 @@ async def save_task_completion(
 
         collection = mongo_client[DB_NAME][TASKS_COLLECTION]
 
+        update_data = {
+            "original_content": original_content,
+            "summarized_content": summarized_content,
+            "processing_completed_at": datetime.now(UTC),
+        }
+
+        if fallacy_result is not None:
+            update_data["fallacy_result"] = ujson.loads(fallacy_result.model_dump_json())
+
         await collection.update_one(
             {"task_id": str(task_id)},
-            {
-                "$set": {
-                    "original_content": original_content,
-                    "summarized_content": summarized_content,
-                    "processing_completed_at": mongo_client.utcnow() if hasattr(mongo_client, "utcnow") else None,
-                }
-            },
+            {"$set": update_data},
         )
 
     except Exception as e:

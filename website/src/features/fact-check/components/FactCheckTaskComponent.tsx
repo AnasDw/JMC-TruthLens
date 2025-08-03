@@ -5,6 +5,7 @@ import {
   LoadingOutlined,
   CloseCircleOutlined,
   ClockCircleOutlined,
+  ExclamationCircleOutlined,
   LinkOutlined,
   CalendarOutlined,
 } from "@ant-design/icons";
@@ -44,8 +45,9 @@ const getLabelText = (label: string) => {
 
 const FactCheckResults: React.FC<{
   result: FactCheckResult;
+  reasoningAnalysis?: ReasoningIssueAnalysis;
   onNewCheck: () => void;
-}> = ({ result, onNewCheck }) => {
+}> = ({ result, reasoningAnalysis, onNewCheck }) => {
   return (
     <Flex
       align="center"
@@ -178,6 +180,114 @@ const FactCheckResults: React.FC<{
               </Flex>
             )}
 
+            {/* Reasoning Analysis */}
+            {reasoningAnalysis && (
+              <div>
+                <Title
+                  level={4}
+                  style={{ color: "#1e293b", marginBottom: "12px" }}
+                >
+                  🧠 Reasoning Analysis
+                </Title>
+
+                {/* Fallacies */}
+                {reasoningAnalysis.fallacies &&
+                  reasoningAnalysis.fallacies.length > 0 && (
+                    <Card
+                      style={{
+                        background: "#fff3cd",
+                        border: "1px solid #ffc107",
+                        borderRadius: "12px",
+                        marginBottom: "12px",
+                      }}
+                    >
+                      <Flex vertical gap={8}>
+                        <Text strong style={{ color: "#856404" }}>
+                          ⚠️ Logical Fallacies Detected:
+                        </Text>
+                        <Space wrap>
+                          {reasoningAnalysis.fallacies.map(
+                            (fallacy: string, index: number) => (
+                              <Tag
+                                key={index}
+                                color="warning"
+                                style={{
+                                  padding: "4px 12px",
+                                  borderRadius: "16px",
+                                  fontSize: "12px",
+                                }}
+                              >
+                                {fallacy}
+                              </Tag>
+                            )
+                          )}
+                        </Space>
+                      </Flex>
+                    </Card>
+                  )}
+
+                {/* Bias Indicators */}
+                {reasoningAnalysis.bias_indicators &&
+                  reasoningAnalysis.bias_indicators.length > 0 && (
+                    <Card
+                      style={{
+                        background: "#f8d7da",
+                        border: "1px solid #dc3545",
+                        borderRadius: "12px",
+                        marginBottom: "12px",
+                      }}
+                    >
+                      <Flex vertical gap={8}>
+                        <Text strong style={{ color: "#721c24" }}>
+                          🎯 Bias Indicators Found:
+                        </Text>
+                        <Space wrap>
+                          {reasoningAnalysis.bias_indicators.map(
+                            (bias: string, index: number) => (
+                              <Tag
+                                key={index}
+                                color="error"
+                                style={{
+                                  padding: "4px 12px",
+                                  borderRadius: "16px",
+                                  fontSize: "12px",
+                                }}
+                              >
+                                {bias}
+                              </Tag>
+                            )
+                          )}
+                        </Space>
+                      </Flex>
+                    </Card>
+                  )}
+
+                {/* Explanation */}
+                {reasoningAnalysis.explanation && (
+                  <Card
+                    style={{
+                      background: "#d1ecf1",
+                      border: "1px solid #17a2b8",
+                      borderRadius: "12px",
+                    }}
+                  >
+                    <Flex align="center" gap={8}>
+                      <ExclamationCircleOutlined style={{ color: "#0c5460" }} />
+                      <Text
+                        style={{
+                          color: "#0c5460",
+                          fontSize: "14px",
+                          lineHeight: 1.6,
+                        }}
+                      >
+                        {reasoningAnalysis.explanation}
+                      </Text>
+                    </Flex>
+                  </Card>
+                )}
+              </div>
+            )}
+
             {/* Action Button */}
             <Flex gap={16} style={{ width: "100%" }}>
               <div
@@ -227,6 +337,12 @@ const FactCheckResults: React.FC<{
   );
 };
 
+interface ReasoningIssueAnalysis {
+  fallacies: string[];
+  bias_indicators: string[];
+  explanation: string;
+}
+
 interface FactCheckResult {
   url: string | null;
   label: "correct" | "incorrect" | "partially-correct" | "misleading";
@@ -245,6 +361,7 @@ interface TaskStatusResponse {
   result?: FactCheckResult;
   created_at: string;
   updated_at: string;
+  fallacy_result?: ReasoningIssueAnalysis;
 }
 
 interface FactCheckTaskProps {
@@ -429,7 +546,11 @@ export const FactCheckTaskComponent: React.FC<FactCheckTaskProps> = ({
   // Show results if task is completed and we have result data
   if (taskStatus?.status === "completed" && taskStatus.result) {
     return (
-      <FactCheckResults result={taskStatus.result} onNewCheck={resetForm} />
+      <FactCheckResults
+        result={taskStatus.result}
+        reasoningAnalysis={taskStatus.fallacy_result}
+        onNewCheck={resetForm}
+      />
     );
   }
 
