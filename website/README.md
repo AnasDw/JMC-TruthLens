@@ -1,36 +1,174 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TruthLens AI - Fact-Checking Platform
 
-## Getting Started
+[![Next.js](https://img.shields.io/badge/Next.js-15.4.5-black)](https://nextjs.org/)
+[![React](https://img.shields.io/badge/React-18.3.1-blue)](https://reactjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue)](https://www.typescriptlang.org/)
+[![Ant Design](https://img.shields.io/badge/Ant%20Design-5.26.7-1677ff)](https://ant.design/)
 
-First, run the development server:
+TruthLens AI is a cutting-edge fact-checking platform that uses advanced AI technology to verify the truthfulness of statements, news articles, and claims. Built with modern web technologies, it provides real-time fact verification with source attribution and credibility scoring.
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## ✨ Features
+
+- 🤖 **AI-Powered Verification** - Advanced fact-checking with multiple source verification
+- ⚡ **Instant Analysis** - Get comprehensive results in seconds
+- 🔍 **Transparent Sources** - Clear attribution and credibility scores
+- 📊 **Real-time Progress** - Live task tracking with step-by-step updates
+- 📱 **Responsive Design** - Modern UI that works on all devices
+- 📚 **Verification History** - Browse and review past fact-checks
+- 🎨 **Modern UI/UX** - Beautiful, intuitive interface with smooth animations
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js 18.x or higher
+- npm, yarn, pnpm, or bun package manager
+- TruthLens AI Backend API running (default: http://localhost:8000)
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/AnasDw/JMC-TruthLens.git
+   cd TruthLens/website
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   # or
+   yarn install
+   # or
+   pnpm install
+   ```
+
+3. **Run the development server**
+   ```bash
+   npm run dev
+   # or
+   yarn dev
+   # or
+   pnpm dev
+   ```
+
+4. **Open your browser**
+   
+   Navigate to [http://localhost:3000](http://localhost:3000) to see the application.
+
+## 🛠️ Tech Stack
+
+- **Framework**: [Next.js 15.4.5](https://nextjs.org/) with TypeScript
+- **UI Components**: [Ant Design 5.26.7](https://ant.design/)
+- **Animations**: [Framer Motion 12.23.12](https://www.framer.com/motion/)
+- **State Management**: [TanStack React Query 5.84.1](https://tanstack.com/query)
+- **Icons**: [Ant Design Icons 6.0.0](https://ant.design/components/icon)
+- **Styling**: CSS-in-JS with Ant Design theming
+
+## 📁 Project Structure
+
+```
+src/
+├── features/            # Feature-specific components
+│   ├── components/      # Shared feature components
+│   └── fact-check/      # Fact-checking feature
+│       ├── components/
+│       ├── hooks/
+│       └── types/
+├── hooks/               # Custom React hooks
+├── pages/               # Next.js pages
+│   ├── api/            # API routes
+│   ├── _app.tsx        # App configuration
+│   └── index.tsx       # Home page
+├── styles/              # Global styles
+└── types/               # TypeScript type definitions
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🎨 Design System
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The application uses a consistent design system with:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **Primary Color**: `#764ba2` (Purple gradient)
+- **Secondary Color**: `#667eea` (Blue gradient)
+- **Typography**: Modern font stack with proper hierarchy
+- **Spacing**: Consistent 8px grid system
+- **Animations**: Smooth transitions with Framer Motion
+- **Theme**: Customized Ant Design theme
 
-## Learn More
+## 🔧 Configuration
 
-To learn more about Next.js, take a look at the following resources:
+### Environment Variables
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Create a `.env.local` file in the root directory:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```env
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
 
-## Deploy on Vercel
+### API Integration
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The frontend communicates with the TruthLens AI backend API:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Fact Check**: `POST /api/verify/text`
+- **Task Status**: `GET /api/task/{task_id}/status`
+- **Task History**: `GET /api/tasks/`
+
+## 📱 Features Overview
+
+### Fact-Checking Interface
+- Clean, modern input interface
+- Real-time validation
+- Support for various content types
+
+### Progress Tracking
+- Visual step-by-step progress indicator
+- Real-time status updates
+- Error handling with retry options
+
+### Results Display
+- Color-coded verification results
+- Detailed analysis with source attribution
+- Interactive reference links
+- Safety indicators
+
+### History Management
+- Browse past verification requests
+- Filter by status and date
+- Quick access to previous results
+
+## 🎯 Usage
+
+1. **Submit Content**: Enter any statement, claim, or news article
+2. **Track Progress**: Watch real-time analysis progress
+3. **Review Results**: Get detailed verification with sources
+4. **Browse History**: Access past verifications anytime
+
+## 🔨 Development
+
+### Available Scripts
+
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run start` - Start production server
+- `npm run lint` - Run ESLint
+
+### Code Style
+
+The project follows:
+- TypeScript strict mode
+- ESLint configuration
+- Prettier formatting (recommended)
+- Component-first architecture
+
+
+## 🙏 Acknowledgments
+
+- [Next.js](https://nextjs.org/) for the amazing React framework
+- [Ant Design](https://ant.design/) for the beautiful UI components
+- [Framer Motion](https://www.framer.com/motion/) for smooth animations
+- [TanStack Query](https://tanstack.com/query) for data fetching
+
+## 📞 Support
+
+For support, email [support@truthlens.ai](mailto:support@truthlens.ai) or join our community discussions.
+
+---
