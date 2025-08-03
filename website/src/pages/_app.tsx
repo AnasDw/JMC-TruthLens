@@ -23,7 +23,6 @@ export default function App({ Component, pageProps }: AppProps) {
   );
 
   useEffect(() => {
-    // Reduce loading time from 3 seconds to 1 second for better UX
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, 1000);
@@ -38,7 +37,10 @@ export default function App({ Component, pageProps }: AppProps) {
   return (
     <>
       <Head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+        <meta
+          name="viewport"
+          content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
+        />
       </Head>
       <QueryClientProvider client={queryClient}>
         <AntdRegistry>
