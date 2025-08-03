@@ -791,8 +791,7 @@ export const FactCheckTaskComponent: React.FC<FactCheckTaskProps> = ({
     return (
       <div
         style={{
-          minHeight: "100vh",
-          background: "linear-gradient(135deg, #f6f9fc 0%, #eef4f7 100%)",
+          height: "100%",
           padding: "32px 24px",
           display: "flex",
           alignItems: "center",
@@ -810,35 +809,34 @@ export const FactCheckTaskComponent: React.FC<FactCheckTaskProps> = ({
             textAlign: "center",
           }}
         >
-          <div style={{ padding: "40px 20px" }}>
-            <div
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "12px",
-                background: "rgba(118, 75, 162, 0.1)",
-                padding: "16px 24px",
-                borderRadius: "50px",
-                marginBottom: "24px",
-              }}
-            >
-              <RobotOutlined style={{ fontSize: "24px", color: "#764ba2" }} />
-              <Text
-                style={{ fontSize: "18px", fontWeight: 600, color: "#764ba2" }}
-              >
-                Connecting to AI
+          <Flex
+            vertical
+            style={{ padding: "40px 20px" }}
+            align="center"
+            justify="space-between"
+            gap={32}
+          >
+            <Flex vertical align="center" gap={8}>
+              <Flex gap={8}>
+                <RobotOutlined style={{ fontSize: "24px", color: "#764ba2" }} />
+                <Text
+                  style={{
+                    fontSize: "1.5rem",
+                    fontWeight: 600,
+                    color: "#764ba2",
+                  }}
+                >
+                  Connecting to AI
+                </Text>
+              </Flex>
+
+              <Text type="secondary" style={{ fontSize: "0.875rem" }}>
+                Initializing analysis pipeline...
               </Text>
-            </div>
+            </Flex>
 
-            <Spin
-              size="large"
-              style={{ display: "block", marginBottom: "16px" }}
-            />
-
-            <Text type="secondary" style={{ fontSize: "14px" }}>
-              Initializing analysis pipeline...
-            </Text>
-          </div>
+            <Spin size="large" style={{ display: "block" }} />
+          </Flex>
         </Card>
       </div>
     );
