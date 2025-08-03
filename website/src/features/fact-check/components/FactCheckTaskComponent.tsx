@@ -342,6 +342,10 @@ export const FactCheckTaskComponent: React.FC<FactCheckTaskProps> = ({
   }, [factCheckTaskId, onTaskComplete]);
 
   useEffect(() => {
+    // Reset state when factCheckTaskId changes
+    setTaskStatus(null);
+    setError(null);
+    
     let intervalId: NodeJS.Timeout;
 
     const startPolling = async () => {
