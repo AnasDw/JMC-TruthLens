@@ -40,13 +40,13 @@ export default function Home() {
 
   // Separate effect to handle task_id changes
   const previousTaskIdRef = useRef(factCheckTaskId);
-  
+
   useEffect(() => {
     if (!isRouterReady) {
       return;
     }
 
-    const currentTaskId = typeof task_id === 'string' ? task_id.trim() : null;
+    const currentTaskId = typeof task_id === "string" ? task_id.trim() : null;
 
     if (!currentTaskId) {
       // Only clear if we previously had a task ID
@@ -75,9 +75,9 @@ export default function Home() {
       {contextHolder}
       <ErrorBoundary>
         <Layout
-          style={{ 
-            height: "100vh", 
-            background: "#fafafa", 
+          style={{
+            height: "100vh",
+            background: "#fafafa",
             overflow: "hidden",
           }}
         >
@@ -89,7 +89,7 @@ export default function Home() {
               style={{
                 display: "flex",
                 flexDirection: "column",
-                height: "calc(100vh - 56px)", // Subtract smaller header height
+                height: "calc(100vh - 56px)",
                 padding: "clamp(4px, 1vw, 8px)",
                 overflow: "auto",
               }}
