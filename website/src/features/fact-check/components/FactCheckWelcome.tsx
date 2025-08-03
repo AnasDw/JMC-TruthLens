@@ -30,6 +30,7 @@ export const FactCheckWelcome: React.FC<FactCheckWelcomeProps> = ({
   hasInputError = false,
 }) => {
   const [inputValue, setInputValue] = useState("");
+  const [windowHeight, setWindowHeight] = useState(0);
 
   const { lg } = useBreakpoint();
 
@@ -39,13 +40,44 @@ export const FactCheckWelcome: React.FC<FactCheckWelcomeProps> = ({
     }
   }, [injectedText]);
 
+  React.useEffect(() => {
+    const updateWindowHeight = () => {
+      setWindowHeight(window.innerHeight);
+    };
+
+    // Set initial height
+    updateWindowHeight();
+
+    // Add event listener for window resize
+    window.addEventListener("resize", updateWindowHeight);
+
+    return () => window.removeEventListener("resize", updateWindowHeight);
+  }, []);
+
+  const calculateTextAreaRows = () => {
+    if (windowHeight === 0) return { minRows: 4, maxRows: 4 }; // Default fallback
+
+    let minRows;
+
+    if (windowHeight <= 600) {
+      minRows = 2;
+    } else if (windowHeight <= 800) {
+      minRows = 4;
+    } else if (windowHeight <= 1000) {
+      minRows = 4;
+    } else {
+      minRows = 4;
+    }
+
+    return { minRows };
+  };
+
   const handleSubmit = () => {
     if (inputValue.trim()) {
       submitFactCheck(inputValue);
     }
   };
 
-  // Check if the input contains meaningful alphabetic content
   const hasAlphabeticContent = (text: string): boolean => {
     if (!text.trim()) return false;
 
@@ -214,8 +246,11 @@ export const FactCheckWelcome: React.FC<FactCheckWelcomeProps> = ({
                   onChange={(e) => setInputValue(e.target.value)}
                   placeholder="Enter any statement, claim, or news article you want to verify..."
                   status={hasInputError ? "error" : undefined}
+                  autoSize={{
+                    minRows: calculateTextAreaRows().minRows,
+                    maxRows: calculateTextAreaRows().minRows,
+                  }}
                   style={{
-                    height: lg ? 100 : 80,
                     resize: "none",
                     borderRadius: "12px",
                     fontSize: "16px",
@@ -229,6 +264,7 @@ export const FactCheckWelcome: React.FC<FactCheckWelcomeProps> = ({
                       ? "-8px -8px 32px 0 rgba(255, 77, 79, 0.15), 8px 8px 24px 0 rgba(255, 77, 79, 0.3)"
                       : "-8px -8px 32px 0 rgba(103, 89, 223, 0.15), 8px 8px 24px 0 rgba(239, 185, 253, 0.6)",
                     transition: "all 0.3s ease",
+                    width: "100%",
                   }}
                   onFocus={(e) => {
                     if (!hasInputError) {
