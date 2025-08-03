@@ -11,6 +11,7 @@ import {
 import TextArea from "antd/es/input/TextArea";
 import Image from "next/image";
 import { FloatingActions } from "@/features/components";
+import _ from "lodash";
 
 const { Title, Paragraph, Text } = Typography;
 const { useBreakpoint } = Grid;
@@ -43,6 +44,23 @@ export const FactCheckWelcome: React.FC<FactCheckWelcomeProps> = ({
       submitFactCheck(inputValue);
     }
   };
+
+  // Check if the input contains meaningful alphabetic content
+  const hasAlphabeticContent = (text: string): boolean => {
+    if (!text.trim()) return false;
+
+    const cleanText = _.trim(text);
+
+    const alphaOnly = cleanText.replace(/[^a-zA-Z\s]/g, "");
+
+    const words = _.compact(alphaOnly.split(/\s+/));
+
+    const validWords = _.filter(words, (word) => word.length >= 2);
+
+    return validWords.length >= 2 && _.sumBy(validWords, "length") >= 6;
+  };
+
+  const isValidInput = inputValue.trim() && hasAlphabeticContent(inputValue);
 
   const features = [
     {
@@ -230,7 +248,7 @@ export const FactCheckWelcome: React.FC<FactCheckWelcomeProps> = ({
                   size="large"
                   icon={<SendOutlined />}
                   onClick={handleSubmit}
-                  disabled={!inputValue.trim()}
+                  disabled={!isValidInput}
                   loading={loading}
                   style={{
                     position: "absolute",
@@ -238,7 +256,7 @@ export const FactCheckWelcome: React.FC<FactCheckWelcomeProps> = ({
                     right: "16px",
                     borderRadius: "12px",
                     transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
-                    ...(inputValue.trim() && {
+                    ...(isValidInput && {
                       background:
                         "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
                       boxShadow: "0 4px 16px rgba(102, 126, 234, 0.3)",

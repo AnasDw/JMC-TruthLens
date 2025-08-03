@@ -7,7 +7,8 @@ from fastapi import APIRouter, BackgroundTasks, Depends
 from app.dependencies import get_groq_client, get_openai_client, get_mongo_client
 from core import db_is_working
 from core.db import create_task, get_task_status, update_task_status
-from core.tasks import process_fact_check_task, is_factual_claim
+from core.tasks import process_fact_check_task
+from app.utils.claim_detector import detect_factual_claim
 from schemas import (
     HealthResponse,
     TextInputData,
@@ -41,7 +42,9 @@ async def verify_news(
 
     await create_task(mongo_client, task_data)
 
-    if not await is_factual_claim(groq_client, data.content):
+    result = await detect_factual_claim(groq_client, data.content)
+
+    if not result.is_factual_claim:
         await update_task_status(mongo_client, task_id, TaskStatus.SKIPPED, "Input is not a factual claim")
         return TaskResponse(task_id=task_id, status=TaskStatus.SKIPPED, message="Input is not a factual claim")
 
